@@ -1,0 +1,18 @@
+import 'package:flutter/material.dart';
+
+class StudentProvider with ChangeNotifier {
+  bool _isLoading = false;
+  String? _error;
+
+  bool get isLoading => _isLoading;
+  String? get error => _error;
+
+  void _setError(String? error) {
+    _error = error;
+    notifyListeners();
+  }
+
+  void clearError() {
+    _setError(null);
+  }
+}
