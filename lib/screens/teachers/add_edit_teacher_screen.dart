@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../models/teacher_model.dart';
 import '../../services/teacher_service.dart';
+import '../../services/auth_service.dart';
 
 class AddEditTeacherScreen extends StatefulWidget {
   final Teacher? teacher;
@@ -14,59 +15,17 @@ class AddEditTeacherScreen extends StatefulWidget {
 
 class _AddEditTeacherScreenState extends State<AddEditTeacherScreen> {
   final _formKey = GlobalKey<FormState>();
-  final TeacherService _teacherService = TeacherService();
-  
+
   late TextEditingController _firstNameController;
   late TextEditingController _lastNameController;
   late TextEditingController _emailController;
   late TextEditingController _phoneController;
   late TextEditingController _addressController;
-  late TextEditingController _salaryController;
-  late TextEditingController _emergencyContactController;
-  late TextEditingController _emergencyPhoneController;
-  
-  DateTime? _birthDate;
+  late TextEditingController _passwordController;
+
   DateTime? _hireDate;
-  String _selectedSpecialization = 'Matemáticas';
-  String _selectedDepartment = 'Matemáticas';
   bool _isActive = true;
   bool _isLoading = false;
-
-  final List<String> _specializations = [
-    'Matemáticas',
-    'Física',
-    'Química',
-    'Biología',
-    'Lenguaje',
-    'Literatura',
-    'Historia',
-    'Geografía',
-    'Educación Física',
-    'Artes Plásticas',
-    'Música',
-    'Inglés',
-    'Francés',
-    'Tecnología',
-    'Informática',
-    'Religión',
-    'Filosofía',
-    'Preescolar',
-    'Psicología',
-    'Orientación'
-  ];
-
-  final List<String> _departments = [
-    'Matemáticas',
-    'Ciencias',
-    'Lenguaje',
-    'Ciencias Sociales',
-    'Educación Física',
-    'Artes',
-    'Inglés',
-    'Tecnología',
-    'Religión',
-    'Preescolar'
-  ];
 
   @override
   void initState() {
@@ -76,21 +35,17 @@ class _AddEditTeacherScreenState extends State<AddEditTeacherScreen> {
 
   void _initializeControllers() {
     final teacher = widget.teacher;
-    
-    _firstNameController = TextEditingController(text: teacher?.firstName ?? '');
+
+    _firstNameController =
+        TextEditingController(text: teacher?.firstName ?? '');
     _lastNameController = TextEditingController(text: teacher?.lastName ?? '');
     _emailController = TextEditingController(text: teacher?.email ?? '');
     _phoneController = TextEditingController(text: teacher?.phone ?? '');
     _addressController = TextEditingController(text: teacher?.address ?? '');
-    _salaryController = TextEditingController(text: teacher?.salary.toString() ?? '');
-    _emergencyContactController = TextEditingController(text: teacher?.emergencyContact ?? '');
-    _emergencyPhoneController = TextEditingController(text: teacher?.emergencyPhone ?? '');
-    
+    _passwordController = TextEditingController();
+
     if (teacher != null) {
-      _birthDate = teacher.birthDate;
       _hireDate = teacher.hireDate;
-      _selectedSpecialization = teacher.specialization;
-      _selectedDepartment = teacher.department;
       _isActive = teacher.isActive;
     }
   }
@@ -102,25 +57,8 @@ class _AddEditTeacherScreenState extends State<AddEditTeacherScreen> {
     _emailController.dispose();
     _phoneController.dispose();
     _addressController.dispose();
-    _salaryController.dispose();
-    _emergencyContactController.dispose();
-    _emergencyPhoneController.dispose();
+    _passwordController.dispose();
     super.dispose();
-  }
-
-  Future<void> _selectBirthDate() async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _birthDate ?? DateTime.now().subtract(const Duration(days: 365 * 30)),
-      firstDate: DateTime.now().subtract(const Duration(days: 365 * 70)),
-      lastDate: DateTime.now().subtract(const Duration(days: 365 * 18)),
-    );
-    
-    if (picked != null && picked != _birthDate) {
-      setState(() {
-        _birthDate = picked;
-      });
-    }
   }
 
   Future<void> _selectHireDate() async {
@@ -130,7 +68,7 @@ class _AddEditTeacherScreenState extends State<AddEditTeacherScreen> {
       firstDate: DateTime.now().subtract(const Duration(days: 365 * 50)),
       lastDate: DateTime.now(),
     );
-    
+
     if (picked != null && picked != _hireDate) {
       setState(() {
         _hireDate = picked;
@@ -142,12 +80,12 @@ class _AddEditTeacherScreenState extends State<AddEditTeacherScreen> {
     if (value == null || value.isEmpty) {
       return 'El email es requerido';
     }
-    
+
     final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
     if (!emailRegex.hasMatch(value)) {
       return 'Ingrese un email válido';
     }
-    
+
     return null;
   }
 
@@ -155,40 +93,17 @@ class _AddEditTeacherScreenState extends State<AddEditTeacherScreen> {
     if (value == null || value.isEmpty) {
       return 'El teléfono es requerido';
     }
-    
+
     final phoneRegex = RegExp(r'^\d{10}$');
     if (!phoneRegex.hasMatch(value.replaceAll(RegExp(r'[^\d]'), ''))) {
       return 'Ingrese un teléfono válido (10 dígitos)';
     }
-    
-    return null;
-  }
 
-  String? _validateSalary(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'El salario es requerido';
-    }
-    
-    final salary = double.tryParse(value);
-    if (salary == null || salary <= 0) {
-      return 'Ingrese un salario válido';
-    }
-    
     return null;
   }
 
   Future<void> _saveTeacher() async {
     if (!_formKey.currentState!.validate()) {
-      return;
-    }
-
-    if (_birthDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Seleccione la fecha de nacimiento'),
-          backgroundColor: Colors.red,
-        ),
-      );
       return;
     }
 
@@ -205,38 +120,51 @@ class _AddEditTeacherScreenState extends State<AddEditTeacherScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final teacher = Teacher(
-        id: widget.teacher?.id,
-        firstName: _firstNameController.text.trim(),
-        lastName: _lastNameController.text.trim(),
-        email: _emailController.text.trim(),
-        phone: _phoneController.text.trim(),
-        address: _addressController.text.trim(),
-        birthDate: _birthDate!,
-        specialization: _selectedSpecialization,
-        department: _selectedDepartment,
-        hireDate: _hireDate!,
-        salary: double.parse(_salaryController.text.trim()),
-        isActive: _isActive,
-        emergencyContact: _emergencyContactController.text.trim().isEmpty 
-            ? null 
-            : _emergencyContactController.text.trim(),
-        emergencyPhone: _emergencyPhoneController.text.trim().isEmpty 
-            ? null 
-            : _emergencyPhoneController.text.trim(),
-      );
-
       if (widget.teacher == null) {
-        // Crear nuevo profesor
-        await _teacherService.insertTeacher(teacher);
-        _showSuccessMessage('Profesor creado exitosamente');
+        // Crear nuevo profesor usando la API
+        final teacherData = {
+          'email': _emailController.text.trim(),
+          'password': _passwordController.text.trim(),
+          'rol': 'profesor',
+          'nombre': _firstNameController.text.trim(),
+          'apellido': _lastNameController.text.trim(),
+          'telefono': _phoneController.text.trim(),
+          'direccion': _addressController.text.trim(),
+          'fecha_contratacion': _hireDate!.toIso8601String().split('T')[0],
+        };
+
+        final response = await AuthService.registerTeacher(teacherData);
+
+        if (response.success) {
+          // Mostrar alerta de éxito
+          await _showSuccessAlert();
+          // Limpiar campos del formulario
+          _clearFormFields();
+        } else {
+          _showErrorMessage('Error al crear profesor: ${response.message}');
+        }
       } else {
-        // Actualizar profesor existente
+        // Actualizar profesor existente (usar servicio local)
+        final teacher = Teacher(
+          id: widget.teacher?.id,
+          firstName: _firstNameController.text.trim(),
+          lastName: _lastNameController.text.trim(),
+          email: _emailController.text.trim(),
+          phone: _phoneController.text.trim(),
+          address: _addressController.text.trim(),
+          birthDate: widget.teacher?.birthDate ??
+              DateTime.now().subtract(const Duration(days: 365 * 30)),
+          specialization: widget.teacher?.specialization ?? 'General',
+          department: widget.teacher?.department ?? 'General',
+          hireDate: _hireDate!,
+          salary: widget.teacher?.salary ?? 0.0,
+          isActive: _isActive,
+        );
+
         await TeacherService.updateTeacher(teacher.id!, teacher.toMap());
         _showSuccessMessage('Profesor actualizado exitosamente');
+        Navigator.pop(context, true);
       }
-
-      Navigator.pop(context, true);
     } catch (e) {
       _showErrorMessage('Error al guardar profesor: $e');
     } finally {
@@ -262,10 +190,114 @@ class _AddEditTeacherScreenState extends State<AddEditTeacherScreen> {
     );
   }
 
+  // Mostrar alerta de éxito con opciones
+  Future<void> _showSuccessAlert() async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            children: [
+              Icon(
+                Icons.check_circle,
+                color: Colors.green,
+                size: 28,
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                '¡Éxito!',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'El profesor ha sido registrado exitosamente en el sistema.',
+                style: TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.green[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.green[200]!),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline,
+                        color: Colors.green[700], size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Los datos se han guardado en la base de datos y el formulario se ha limpiado.',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.green[700],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.pop(context, true); // Volver a la lista de profesores
+              },
+              child: const Text(
+                'Volver a Profesores',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                // Mantener en el formulario para agregar otro profesor
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Agregar Otro'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Limpiar todos los campos del formulario
+  void _clearFormFields() {
+    setState(() {
+      _firstNameController.clear();
+      _lastNameController.clear();
+      _emailController.clear();
+      _phoneController.clear();
+      _addressController.clear();
+      _passwordController.clear();
+      _hireDate = null;
+      _isActive = true;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final isEditing = widget.teacher != null;
-    
+
     return Scaffold(
       appBar: AppBar(
         title: Text(isEditing ? 'Editar Profesor' : 'Nuevo Profesor'),
@@ -289,10 +321,11 @@ class _AddEditTeacherScreenState extends State<AddEditTeacherScreen> {
                     children: [
                       const Text(
                         'Información Personal',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 16),
-                      
+
                       TextFormField(
                         controller: _firstNameController,
                         decoration: const InputDecoration(
@@ -307,7 +340,7 @@ class _AddEditTeacherScreenState extends State<AddEditTeacherScreen> {
                         },
                       ),
                       const SizedBox(height: 16),
-                      
+
                       TextFormField(
                         controller: _lastNameController,
                         decoration: const InputDecoration(
@@ -322,7 +355,7 @@ class _AddEditTeacherScreenState extends State<AddEditTeacherScreen> {
                         },
                       ),
                       const SizedBox(height: 16),
-                      
+
                       TextFormField(
                         controller: _emailController,
                         decoration: const InputDecoration(
@@ -333,7 +366,32 @@ class _AddEditTeacherScreenState extends State<AddEditTeacherScreen> {
                         validator: _validateEmail,
                       ),
                       const SizedBox(height: 16),
-                      
+
+                      // Solo mostrar campo de contraseña para nuevos profesores
+                      if (widget.teacher == null) ...[
+                        TextFormField(
+                          controller: _passwordController,
+                          decoration: const InputDecoration(
+                            labelText: 'Contraseña *',
+                            border: OutlineInputBorder(),
+                          ),
+                          obscureText: true,
+                          validator: (value) {
+                            if (widget.teacher == null &&
+                                (value == null || value.trim().isEmpty)) {
+                              return 'La contraseña es requerida';
+                            }
+                            if (widget.teacher == null &&
+                                value != null &&
+                                value.length < 6) {
+                              return 'La contraseña debe tener al menos 6 caracteres';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+
                       TextFormField(
                         controller: _phoneController,
                         decoration: const InputDecoration(
@@ -344,27 +402,7 @@ class _AddEditTeacherScreenState extends State<AddEditTeacherScreen> {
                         validator: _validatePhone,
                       ),
                       const SizedBox(height: 16),
-                      
-                      InkWell(
-                        onTap: _selectBirthDate,
-                        child: InputDecorator(
-                          decoration: const InputDecoration(
-                            labelText: 'Fecha de Nacimiento *',
-                            border: OutlineInputBorder(),
-                            suffixIcon: Icon(Icons.calendar_today),
-                          ),
-                          child: Text(
-                            _birthDate != null
-                                ? '${_birthDate!.day}/${_birthDate!.month}/${_birthDate!.year}'
-                                : 'Seleccionar fecha',
-                            style: TextStyle(
-                              color: _birthDate != null ? Colors.black : Colors.grey,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      
+
                       TextFormField(
                         controller: _addressController,
                         decoration: const InputDecoration(
@@ -377,9 +415,9 @@ class _AddEditTeacherScreenState extends State<AddEditTeacherScreen> {
                   ),
                 ),
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               // Información profesional
               Card(
                 child: Padding(
@@ -389,46 +427,10 @@ class _AddEditTeacherScreenState extends State<AddEditTeacherScreen> {
                     children: [
                       const Text(
                         'Información Profesional',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 16),
-                      
-                      DropdownButtonFormField<String>(
-                        value: _selectedSpecialization,
-                        decoration: const InputDecoration(
-                          labelText: 'Especialización *',
-                          border: OutlineInputBorder(),
-                        ),
-                        items: _specializations.map((specialization) {
-                          return DropdownMenuItem(
-                            value: specialization,
-                            child: Text(specialization),
-                          );
-                        }).toList(),
-                        onChanged: (value) {
-                          setState(() => _selectedSpecialization = value!);
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      
-                      DropdownButtonFormField<String>(
-                        value: _selectedDepartment,
-                        decoration: const InputDecoration(
-                          labelText: 'Departamento *',
-                          border: OutlineInputBorder(),
-                        ),
-                        items: _departments.map((department) {
-                          return DropdownMenuItem(
-                            value: department,
-                            child: Text(department),
-                          );
-                        }).toList(),
-                        onChanged: (value) {
-                          setState(() => _selectedDepartment = value!);
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      
                       InkWell(
                         onTap: _selectHireDate,
                         child: InputDecorator(
@@ -442,31 +444,18 @@ class _AddEditTeacherScreenState extends State<AddEditTeacherScreen> {
                                 ? '${_hireDate!.day}/${_hireDate!.month}/${_hireDate!.year}'
                                 : 'Seleccionar fecha',
                             style: TextStyle(
-                              color: _hireDate != null ? Colors.black : Colors.grey,
+                              color: _hireDate != null
+                                  ? Colors.black
+                                  : Colors.grey,
                             ),
                           ),
                         ),
                       ),
                       const SizedBox(height: 16),
-                      
-                      TextFormField(
-                        controller: _salaryController,
-                        decoration: const InputDecoration(
-                          labelText: 'Salario *',
-                          border: OutlineInputBorder(),
-                          prefixText: '\$ ',
-                        ),
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
-                        ],
-                        validator: _validateSalary,
-                      ),
-                      const SizedBox(height: 16),
-                      
                       SwitchListTile(
                         title: const Text('Profesor Activo'),
-                        subtitle: const Text('Determina si el profesor está actualmente trabajando'),
+                        subtitle: const Text(
+                            'Determina si el profesor está actualmente trabajando'),
                         value: _isActive,
                         onChanged: (value) {
                           setState(() => _isActive = value);
@@ -476,52 +465,16 @@ class _AddEditTeacherScreenState extends State<AddEditTeacherScreen> {
                   ),
                 ),
               ),
-              
-              const SizedBox(height: 16),
-              
-              // Contacto de emergencia
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Contacto de Emergencia',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 16),
-                      
-                      TextFormField(
-                        controller: _emergencyContactController,
-                        decoration: const InputDecoration(
-                          labelText: 'Nombre del Contacto',
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      
-                      TextFormField(
-                        controller: _emergencyPhoneController,
-                        decoration: const InputDecoration(
-                          labelText: 'Teléfono de Emergencia',
-                          border: OutlineInputBorder(),
-                        ),
-                        keyboardType: TextInputType.phone,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              
+
               const SizedBox(height: 24),
-              
+
               // Botones de acción
               Row(
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: _isLoading ? null : () => Navigator.pop(context),
+                      onPressed:
+                          _isLoading ? null : () => Navigator.pop(context),
                       child: const Text('Cancelar'),
                     ),
                   ),
@@ -539,7 +492,8 @@ class _AddEditTeacherScreenState extends State<AddEditTeacherScreen> {
                               width: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                valueColor:
+                                    AlwaysStoppedAnimation<Color>(Colors.white),
                               ),
                             )
                           : Text(isEditing ? 'Actualizar' : 'Guardar'),

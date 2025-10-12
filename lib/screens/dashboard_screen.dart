@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/user.dart';
+import '../services/user_service.dart';
 import 'login_screen.dart';
 import 'students/students_screen.dart';
 import 'teachers/teachers_screen.dart';
@@ -63,15 +64,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
               child: const Text('Cancelar'),
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 Navigator.of(context).pop();
+
+                // Eliminar usuario de SharedPreferences
+                await UserService.removeUser();
+
+                print(
+                    '🔐 DEBUG DashboardScreen: Usuario deslogueado, eliminando sesión');
+
+                // Navegar al login
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (context) => const LoginScreen()),
                 );
               },
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              child: const Text('Cerrar Sesión', style: TextStyle(color: Colors.white)),
+              child: const Text('Cerrar Sesión',
+                  style: TextStyle(color: Colors.white)),
             ),
           ],
         );
@@ -81,7 +91,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   void _navigateToModule(String moduleName, int index) {
     Widget? screen;
-    
+
     switch (moduleName) {
       case 'Estudiantes':
         screen = const StudentsScreen();
@@ -105,13 +115,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
         );
         return;
     }
-    
-    if (screen != null) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => screen!),
-      );
-    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => screen!),
+    );
   }
 
   Widget _buildHomeContent() {
@@ -123,7 +131,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           // Tarjeta de bienvenida
           Card(
             elevation: 4,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
@@ -171,12 +180,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Text(
             'Resumen del Sistema',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: Colors.grey[800],
-            ),
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[800],
+                ),
           ),
           const SizedBox(height: 16),
-          
+
           Row(
             children: [
               Expanded(
@@ -199,7 +208,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          
+
           Row(
             children: [
               Expanded(
@@ -227,12 +236,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Text(
             'Accesos Rápidos',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: Colors.grey[800],
-            ),
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[800],
+                ),
           ),
           const SizedBox(height: 16),
-          
+
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -310,7 +319,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             gradient: LinearGradient(
-              colors: [item.color.withOpacity(0.1), item.color.withOpacity(0.05)],
+              colors: [
+                item.color.withOpacity(0.1),
+                item.color.withOpacity(0.05)
+              ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -354,8 +366,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Text(
             'Módulo de $moduleName',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              color: Colors.grey[600],
-            ),
+                  color: Colors.grey[600],
+                ),
           ),
           const SizedBox(height: 8),
           Text(
@@ -374,7 +386,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_selectedIndex == 0 ? 'Dashboard' : _menuItems[_selectedIndex - 1].title),
+        title: Text(_selectedIndex == 0
+            ? 'Dashboard'
+            : _menuItems[_selectedIndex - 1].title),
         backgroundColor: Colors.blue[600],
         foregroundColor: Colors.white,
         elevation: 0,
@@ -468,7 +482,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.logout, color: Colors.red),
-              title: const Text('Cerrar Sesión', style: TextStyle(color: Colors.red)),
+              title: const Text('Cerrar Sesión',
+                  style: TextStyle(color: Colors.red)),
               onTap: () {
                 Navigator.pop(context);
                 _logout();
@@ -477,7 +492,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
         ),
       ),
-      body: _selectedIndex == 0 
+      body: _selectedIndex == 0
           ? _buildHomeContent()
           : _buildModuleContent(_menuItems[_selectedIndex - 1].title),
     );

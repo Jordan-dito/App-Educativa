@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:email_validator/email_validator.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
 import '../services/auth_service.dart';
-import '../models/user.dart';
+import '../services/user_service.dart';
 import 'dashboard_screen.dart';
 import 'test_connection_screen.dart';
 
@@ -40,8 +38,8 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (response.success && response.data != null) {
-        // Guardar usuario en SharedPreferences
-        await _saveUserToStorage(response.data!);
+        // Guardar usuario usando UserService
+        await UserService.saveUser(response.data!);
 
         if (mounted) {
           Navigator.pushReplacement(
@@ -67,11 +65,6 @@ class _LoginScreenState extends State<LoginScreen> {
         });
       }
     }
-  }
-
-  Future<void> _saveUserToStorage(User user) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('user', json.encode(user.toJson()));
   }
 
   @override
