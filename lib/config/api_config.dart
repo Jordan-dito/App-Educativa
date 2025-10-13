@@ -7,6 +7,8 @@ class ApiConfig {
   static const String registerEndpoint = '/api/auth.php?action=register';
   static const String profileEndpoint = '/api/auth.php?action=profile';
   static const String testEndpoint = '/api/test.php';
+  static const String studentsEndpoint = '/api/auth.php?action=students';
+  static const String teachersEndpoint = '/api/auth.php?action=teachers';
 
   // Headers por defecto
   static Map<String, String> get defaultHeaders => {

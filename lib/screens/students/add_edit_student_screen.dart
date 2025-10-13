@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../models/student_model.dart';
-import '../../services/student_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/user_service.dart';
 
@@ -15,7 +14,6 @@ class AddEditStudentScreen extends StatefulWidget {
 
 class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
   final _formKey = GlobalKey<FormState>();
-  final StudentService _studentService = StudentService();
 
   late TextEditingController _firstNameController;
   late TextEditingController _lastNameController;
@@ -186,24 +184,13 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
         }
       } else {
         // Actualizar estudiante existente (usar servicio local)
-        final student = Student(
-          id: widget.student?.id,
-          firstName: _firstNameController.text.trim(),
-          lastName: _lastNameController.text.trim(),
-          email: _emailController.text.trim(),
-          phone: _phoneController.text.trim(),
-          address: _addressController.text.trim(),
-          dateOfBirth: _birthDate!,
-          grade: _selectedGrade,
-          section: _selectedSection,
-          guardianName: widget.student?.guardianName ?? '',
-          guardianPhone: widget.student?.guardianPhone ?? '',
-          isActive: _isActive,
+        // TODO: Implementar actualización cuando esté disponible
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Actualización de estudiantes en desarrollo'),
+            backgroundColor: Colors.orange,
+          ),
         );
-
-        await _studentService.updateStudent(student);
-        _showSuccessMessage('Estudiante actualizado exitosamente');
-        Navigator.pop(context, true);
       }
     } catch (e) {
       _showErrorMessage('Error al guardar estudiante: $e');

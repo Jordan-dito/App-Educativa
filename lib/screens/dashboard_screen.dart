@@ -20,11 +20,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   final List<DashboardItem> _menuItems = [
     DashboardItem(
-      title: 'Inicio',
-      icon: Icons.home,
-      color: Colors.blue,
-    ),
-    DashboardItem(
       title: 'Estudiantes',
       icon: Icons.school,
       color: Colors.green,
@@ -445,17 +440,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ],
               ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.home),
-              title: const Text('Inicio'),
-              selected: _selectedIndex == 0,
-              onTap: () {
-                setState(() {
-                  _selectedIndex = 0;
-                });
-                Navigator.pop(context);
-              },
             ),
             ...List.generate(_menuItems.length, (index) {
               final item = _menuItems[index];

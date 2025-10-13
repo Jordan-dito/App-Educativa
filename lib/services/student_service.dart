@@ -10,7 +10,7 @@ class StudentService {
 
   static const String _studentsKey = 'students_data';
 
-  // Obtener todos los estudiantes
+  // Obtener todos los estudiantes (usando modelo viejo para compatibilidad)
   Future<List<Student>> getAllStudents() async {
     try {
       final prefs = await SharedPreferences.getInstance();

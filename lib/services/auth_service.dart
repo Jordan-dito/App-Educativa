@@ -330,6 +330,118 @@ class AuthService {
     }
   }
 
+  // Obtener profesores
+  static Future<ApiResponse<List<Map<String, dynamic>>>> getTeachers() async {
+    try {
+      print('👨‍🏫 DEBUG AuthService.getTeachers: Iniciando obtención de profesores...');
+      print('👨‍🏫 DEBUG AuthService.getTeachers: URL: ${ApiConfig.baseUrl}${ApiConfig.teachersEndpoint}');
+      
+      final response = await http.get(
+        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.teachersEndpoint}'),
+        headers: ApiConfig.defaultHeaders,
+      );
+
+      print('👨‍🏫 DEBUG AuthService.getTeachers: Status code: ${response.statusCode}');
+      print('👨‍🏫 DEBUG AuthService.getTeachers: Response headers: ${response.headers}');
+      print('👨‍🏫 DEBUG AuthService.getTeachers: Response body: ${response.body}');
+
+      if ((response.statusCode != 200 && response.statusCode != 201)) {
+        print('❌ DEBUG AuthService.getTeachers: Error HTTP - Status: ${response.statusCode}');
+        return ApiResponse(
+          success: false,
+          message: 'Error del servidor: ${response.statusCode}',
+        );
+      }
+
+      final data = json.decode(response.body);
+      print('👨‍🏫 DEBUG AuthService.getTeachers: Decoded data: $data');
+      
+      // Validar estructura de respuesta
+      if (!data.containsKey('success')) {
+        print('❌ DEBUG AuthService.getTeachers: Respuesta no contiene campo "success"');
+        return ApiResponse(
+          success: false,
+          message: 'Formato de respuesta inválido: falta campo "success"',
+        );
+      }
+      
+      final apiResponse = ApiResponse<List<Map<String, dynamic>>>.fromJson(data, (json) {
+        if (json is List) {
+          return json.cast<Map<String, dynamic>>();
+        }
+        return <Map<String, dynamic>>[];
+      });
+      
+      print('👨‍🏫 DEBUG AuthService.getTeachers: ApiResponse success: ${apiResponse.success}');
+      print('👨‍🏫 DEBUG AuthService.getTeachers: ApiResponse message: ${apiResponse.message}');
+      print('👨‍🏫 DEBUG AuthService.getTeachers: ApiResponse data length: ${apiResponse.data?.length ?? 0}');
+      
+      return apiResponse;
+    } catch (e) {
+      print('❌ DEBUG AuthService.getTeachers: Error: $e');
+      return ApiResponse(
+        success: false,
+        message: 'Error de conexión: $e',
+      );
+    }
+  }
+
+  // Obtener estudiantes
+  static Future<ApiResponse<List<Map<String, dynamic>>>> getStudents() async {
+    try {
+      print('🎓 DEBUG AuthService.getStudents: Iniciando obtención de estudiantes...');
+      print('🎓 DEBUG AuthService.getStudents: URL: ${ApiConfig.baseUrl}${ApiConfig.studentsEndpoint}');
+      
+      final response = await http.get(
+        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.studentsEndpoint}'),
+        headers: ApiConfig.defaultHeaders,
+      );
+
+      print('🎓 DEBUG AuthService.getStudents: Status code: ${response.statusCode}');
+      print('🎓 DEBUG AuthService.getStudents: Response headers: ${response.headers}');
+      print('🎓 DEBUG AuthService.getStudents: Response body: ${response.body}');
+
+      if ((response.statusCode != 200 && response.statusCode != 201)) {
+        print('❌ DEBUG AuthService.getStudents: Error HTTP - Status: ${response.statusCode}');
+        return ApiResponse(
+          success: false,
+          message: 'Error del servidor: ${response.statusCode}',
+        );
+      }
+
+      final data = json.decode(response.body);
+      print('🎓 DEBUG AuthService.getStudents: Decoded data: $data');
+      
+      // Validar estructura de respuesta
+      if (!data.containsKey('success')) {
+        print('❌ DEBUG AuthService.getStudents: Respuesta no contiene campo "success"');
+        return ApiResponse(
+          success: false,
+          message: 'Formato de respuesta inválido: falta campo "success"',
+        );
+      }
+      
+      final apiResponse = ApiResponse<List<Map<String, dynamic>>>.fromJson(data, (json) {
+        if (json is List) {
+          return json.cast<Map<String, dynamic>>();
+        }
+        return <Map<String, dynamic>>[];
+      });
+      
+      print('🎓 DEBUG AuthService.getStudents: ApiResponse success: ${apiResponse.success}');
+      print('🎓 DEBUG AuthService.getStudents: ApiResponse message: ${apiResponse.message}');
+      print('🎓 DEBUG AuthService.getStudents: ApiResponse data length: ${apiResponse.data?.length ?? 0}');
+      
+      return apiResponse;
+    } catch (e) {
+      print('❌ DEBUG AuthService.getStudents: Error: $e');
+      return ApiResponse(
+        success: false,
+        message: 'Error de conexión: $e',
+      );
+    }
+  }
+
   // Probar conexión
   static Future<ApiResponse<Map<String, dynamic>>> testConnection() async {
     try {
