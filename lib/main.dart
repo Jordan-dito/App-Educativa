@@ -56,7 +56,6 @@ class AuthWrapper extends StatefulWidget {
 }
 
 class _AuthWrapperState extends State<AuthWrapper> {
-  bool _isLoading = true;
   User? _currentUser;
 
   @override
@@ -68,61 +67,31 @@ class _AuthWrapperState extends State<AuthWrapper> {
   Future<void> _checkAuthStatus() async {
     try {
       print('🔐 DEBUG AuthWrapper: Verificando estado de autenticación...');
-      
+
       final user = await UserService.getCurrentUser();
-      
+
       if (user != null) {
-        print('🔐 DEBUG AuthWrapper: Usuario encontrado - Email: ${user.email}, Rol: ${user.rol}');
+        print(
+            '🔐 DEBUG AuthWrapper: Usuario encontrado - Email: ${user.email}, Rol: ${user.rol}');
         setState(() {
           _currentUser = user;
-          _isLoading = false;
         });
       } else {
         print('🔐 DEBUG AuthWrapper: No hay usuario logueado');
         setState(() {
           _currentUser = null;
-          _isLoading = false;
         });
       }
     } catch (e) {
       print('❌ DEBUG AuthWrapper: Error verificando autenticación: $e');
       setState(() {
         _currentUser = null;
-        _isLoading = false;
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return Scaffold(
-        backgroundColor: Colors.blue[50],
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.school,
-                size: 80,
-                color: Colors.blue[600],
-              ),
-              const SizedBox(height: 24),
-              const CircularProgressIndicator(),
-              const SizedBox(height: 16),
-              Text(
-                'Cargando...',
-                style: TextStyle(
-                  fontSize: 18,
-                  color: Colors.grey[600],
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
     // Si hay usuario logueado, mostrar dashboard
     if (_currentUser != null) {
       return DashboardScreen(user: _currentUser!);
