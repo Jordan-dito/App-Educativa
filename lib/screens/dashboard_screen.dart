@@ -441,6 +441,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ],
               ),
             ),
+            ListTile(
+              leading: const Icon(Icons.home),
+              title: const Text('Inicio'),
+              selected: _selectedIndex == 0,
+              onTap: () {
+                Navigator.pop(context);
+                setState(() {
+                  _selectedIndex = 0;
+                });
+              },
+            ),
+            const Divider(),
             ...List.generate(_menuItems.length, (index) {
               final item = _menuItems[index];
               return ListTile(

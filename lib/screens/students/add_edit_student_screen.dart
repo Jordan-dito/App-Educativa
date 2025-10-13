@@ -124,9 +124,9 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
       return 'El teléfono es requerido';
     }
 
-    final phoneRegex = RegExp(r'^\d{10}$');
+    final phoneRegex = RegExp(r'^\d{8,10}$');
     if (!phoneRegex.hasMatch(value.replaceAll(RegExp(r'[^\d]'), ''))) {
-      return 'Ingrese un teléfono válido (10 dígitos)';
+      return 'Ingrese un teléfono válido (8-10 dígitos)';
     }
 
     return null;
