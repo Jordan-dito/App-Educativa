@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../models/student_model.dart';
+import '../../models/student.dart';
 import '../../services/auth_service.dart';
 import '../../services/user_service.dart';
 
@@ -66,8 +66,23 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
 
     if (student != null) {
       _birthDate = student.dateOfBirth;
-      _selectedGrade = student.grade;
-      _selectedSection = student.section;
+
+      // Validar que el grado del estudiante existe en la lista de grados disponibles
+      // Convertir a string y manejar valores numéricos
+      String studentGrade = student.grade.toString();
+
+      // Si es un número, agregar el símbolo de grado
+      if (RegExp(r'^\d+$').hasMatch(studentGrade)) {
+        studentGrade = '$studentGrade°';
+      }
+
+      _selectedGrade = _grades.contains(studentGrade) ? studentGrade : '1°';
+
+      // Validar que la sección del estudiante existe en la lista de secciones disponibles
+      final studentSection = student.section.toString();
+      _selectedSection =
+          _sections.contains(studentSection) ? studentSection : 'A';
+
       _isActive = student.isActive;
     }
   }

@@ -76,6 +76,34 @@ class Teacher {
     );
   }
 
+  // Convertir desde JSON (para API)
+  factory Teacher.fromJson(Map<String, dynamic> json) {
+    return Teacher(
+      id: json['profesor_id'] ?? json['id'],
+      firstName: json['nombre'] ?? json['firstName'] ?? '',
+      lastName: json['apellido'] ?? json['lastName'] ?? '',
+      email: json['email'] ?? '',
+      phone: json['telefono'] ?? json['phone'] ?? '',
+      address: json['direccion'] ?? json['address'] ?? '',
+      birthDate: json['fecha_nacimiento'] != null 
+          ? DateTime.parse(json['fecha_nacimiento'])
+          : json['birthDate'] != null 
+              ? DateTime.parse(json['birthDate'])
+              : DateTime.now(),
+      specialization: json['especializacion'] ?? json['specialization'] ?? 'Sin especialización',
+      department: json['departamento'] ?? json['department'] ?? 'Sin departamento',
+      hireDate: json['fecha_contratacion'] != null 
+          ? DateTime.parse(json['fecha_contratacion'])
+          : json['hireDate'] != null 
+              ? DateTime.parse(json['hireDate'])
+              : DateTime.now(),
+      salary: (json['salario'] ?? json['salary'] ?? 0.0).toDouble(),
+      isActive: json['profesor_estado'] == 'activo' || json['estado'] == 'activo' || json['isActive'] == true,
+      emergencyContact: json['contacto_emergencia'] ?? json['emergencyContact'],
+      emergencyPhone: json['telefono_emergencia'] ?? json['emergencyPhone'],
+    );
+  }
+
   // Convertir a Map (para SharedPreferences)
   Map<String, dynamic> toMap() {
     return {

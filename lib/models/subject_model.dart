@@ -1,34 +1,24 @@
 class Subject {
   final String? id;
   final String name;
-  final String code;
-  final String description;
-  final String department;
-  final int credits;
-  final int hoursPerWeek;
-  final String level; // Preescolar, Primaria, Secundaria
   final String grade; // 1°, 2°, 3°, etc.
+  final String section; // A, B, C, D
   final String? teacherId;
   final String? teacherName;
+  final String academicYear; // 2024, 2025, etc.
   final bool isActive;
   final DateTime createdAt;
-  final DateTime? updatedAt;
 
   Subject({
     this.id,
     required this.name,
-    required this.code,
-    required this.description,
-    required this.department,
-    required this.credits,
-    required this.hoursPerWeek,
-    required this.level,
     required this.grade,
+    required this.section,
     this.teacherId,
     this.teacherName,
+    required this.academicYear,
     this.isActive = true,
     DateTime? createdAt,
-    this.updatedAt,
   }) : createdAt = createdAt ?? DateTime.now();
 
   // Crear Subject desde Map (para SharedPreferences)
@@ -36,22 +26,38 @@ class Subject {
     return Subject(
       id: map['id'],
       name: map['name'] ?? '',
-      code: map['code'] ?? '',
-      description: map['description'] ?? '',
-      department: map['department'] ?? '',
-      credits: map['credits'] ?? 0,
-      hoursPerWeek: map['hoursPerWeek'] ?? 0,
-      level: map['level'] ?? '',
       grade: map['grade'] ?? '',
+      section: map['section'] ?? '',
       teacherId: map['teacherId'],
       teacherName: map['teacherName'],
+      academicYear: map['academicYear'] ?? DateTime.now().year.toString(),
       isActive: map['isActive'] ?? true,
       createdAt: map['createdAt'] != null 
           ? DateTime.parse(map['createdAt']) 
           : DateTime.now(),
-      updatedAt: map['updatedAt'] != null 
-          ? DateTime.parse(map['updatedAt']) 
-          : null,
+    );
+  }
+
+  // Crear Subject desde JSON (para API)
+  factory Subject.fromJson(Map<String, dynamic> json) {
+    return Subject(
+      id: json['materia_id']?.toString() ?? json['id']?.toString(),
+      name: json['nombre'] ?? json['name'] ?? '',
+      grade: json['grado'] ?? json['grade'] ?? '',
+      section: json['seccion'] ?? json['section'] ?? '',
+      teacherId: json['profesor_id']?.toString() ?? json['teacherId']?.toString(),
+      teacherName: json['profesor_nombre'] != null && json['profesor_apellido'] != null 
+          ? '${json['profesor_nombre']} ${json['profesor_apellido']}'
+          : json['profesor_nombre'] ?? json['teacherName'],
+      academicYear: json['año_academico']?.toString() ?? json['academicYear'] ?? DateTime.now().year.toString(),
+      isActive: (json['estado'] ?? json['activo'] ?? json['isActive']) == 'activo' || 
+                (json['estado'] ?? json['activo'] ?? json['isActive']) == 1 || 
+                (json['estado'] ?? json['activo'] ?? json['isActive']) == true,
+      createdAt: json['fecha_creacion'] != null 
+          ? DateTime.parse(json['fecha_creacion']) 
+          : json['createdAt'] != null 
+              ? DateTime.parse(json['createdAt']) 
+              : DateTime.now(),
     );
   }
 
@@ -60,18 +66,13 @@ class Subject {
     return {
       'id': id,
       'name': name,
-      'code': code,
-      'description': description,
-      'department': department,
-      'credits': credits,
-      'hoursPerWeek': hoursPerWeek,
-      'level': level,
       'grade': grade,
+      'section': section,
       'teacherId': teacherId,
       'teacherName': teacherName,
+      'academicYear': academicYear,
       'isActive': isActive,
       'createdAt': createdAt.toIso8601String(),
-      'updatedAt': updatedAt?.toIso8601String(),
     };
   }
 
@@ -79,54 +80,44 @@ class Subject {
   Subject copyWith({
     String? id,
     String? name,
-    String? code,
-    String? description,
-    String? department,
-    int? credits,
-    int? hoursPerWeek,
-    String? level,
     String? grade,
+    String? section,
     String? teacherId,
     String? teacherName,
+    String? academicYear,
     bool? isActive,
     DateTime? createdAt,
-    DateTime? updatedAt,
   }) {
     return Subject(
       id: id ?? this.id,
       name: name ?? this.name,
-      code: code ?? this.code,
-      description: description ?? this.description,
-      department: department ?? this.department,
-      credits: credits ?? this.credits,
-      hoursPerWeek: hoursPerWeek ?? this.hoursPerWeek,
-      level: level ?? this.level,
       grade: grade ?? this.grade,
+      section: section ?? this.section,
       teacherId: teacherId ?? this.teacherId,
       teacherName: teacherName ?? this.teacherName,
+      academicYear: academicYear ?? this.academicYear,
       isActive: isActive ?? this.isActive,
       createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? DateTime.now(),
     );
   }
 
   // Propiedades calculadas
-  String get fullName => '$code - $name';
+  String get fullName => '$name - $grade $section';
   
-  String get levelGrade => '$level - $grade';
+  String get gradeSection => '$grade - $section';
   
-  String get workload => '$hoursPerWeek horas/semana - $credits créditos';
+  String get displayInfo => '$name ($grade $section) - $academicYear';
 
   // Validaciones
-  bool get isValidCode => code.isNotEmpty && code.length >= 3;
+  bool get isValidGrade => grade.isNotEmpty;
   
-  bool get isValidCredits => credits > 0 && credits <= 10;
+  bool get isValidSection => section.isNotEmpty;
   
-  bool get isValidHours => hoursPerWeek > 0 && hoursPerWeek <= 40;
+  bool get isValidAcademicYear => academicYear.isNotEmpty && int.tryParse(academicYear) != null;
 
   @override
   String toString() {
-    return 'Subject{id: $id, name: $name, code: $code, level: $level, grade: $grade}';
+    return 'Subject{id: $id, name: $name, grade: $grade, section: $section}';
   }
 
   @override

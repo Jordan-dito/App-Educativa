@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../models/teacher.dart' as api_teacher;
-import '../../services/teacher_api_service.dart';
+import '../../models/teacher_model.dart';
+import '../../services/teacher_service.dart';
 import 'add_edit_teacher_screen.dart';
 
 class TeachersScreen extends StatefulWidget {
@@ -11,9 +11,9 @@ class TeachersScreen extends StatefulWidget {
 }
 
 class _TeachersScreenState extends State<TeachersScreen> {
-  final TeacherApiService _teacherService = TeacherApiService();
-  List<api_teacher.Teacher> _teachers = [];
-  List<api_teacher.Teacher> _filteredTeachers = [];
+  final TeacherService _teacherService = TeacherService();
+  List<Teacher> _teachers = [];
+  List<Teacher> _filteredTeachers = [];
   bool _isLoading = true;
   String _searchQuery = '';
   String _selectedDepartment = 'Todos';
@@ -61,7 +61,7 @@ class _TeachersScreenState extends State<TeachersScreen> {
       print(
           '👨‍🏫 DEBUG TeachersScreen._loadTeachers: Cargando profesores desde API...');
 
-      final teachers = await _teacherService.getAllTeachers();
+      final teachers = await _teacherService.getActiveTeachers();
 
       setState(() {
         _teachers = teachers;
@@ -86,10 +86,7 @@ class _TeachersScreenState extends State<TeachersScreen> {
                 .toLowerCase()
                 .contains(_searchQuery.toLowerCase()) ||
             teacher.email.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-            (teacher.phone
-                    ?.toLowerCase()
-                    .contains(_searchQuery.toLowerCase()) ??
-                false);
+            teacher.phone.toLowerCase().contains(_searchQuery.toLowerCase());
 
         final matchesDepartment = _selectedDepartment == 'Todos' ||
             teacher.department == _selectedDepartment;
@@ -103,7 +100,20 @@ class _TeachersScreenState extends State<TeachersScreen> {
     });
   }
 
-  Future<void> _deleteTeacher(api_teacher.Teacher teacher) async {
+  Future<void> _navigateToEditTeacher(Teacher teacher) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddEditTeacherScreen(teacher: teacher),
+      ),
+    );
+
+    if (result == true) {
+      _loadTeachers();
+    }
+  }
+
+  Future<void> _deleteTeacher(Teacher teacher) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -125,7 +135,7 @@ class _TeachersScreenState extends State<TeachersScreen> {
 
     if (confirmed == true) {
       try {
-        await _teacherService.deleteTeacher(teacher.id);
+        await TeacherService.deleteTeacher(teacher.id!);
         _showSuccessSnackBar('Profesor eliminado exitosamente');
         _loadTeachers();
       } catch (e) {
@@ -240,7 +250,7 @@ class _TeachersScreenState extends State<TeachersScreen> {
     );
   }
 
-  Widget _buildTeacherCard(api_teacher.Teacher teacher) {
+  Widget _buildTeacherCard(Teacher teacher) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       child: Card(
@@ -339,14 +349,14 @@ class _TeachersScreenState extends State<TeachersScreen> {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      if (teacher.telefono.isNotEmpty)
+                      if (teacher.phone.isNotEmpty)
                         Row(
                           children: [
                             Icon(Icons.phone,
                                 size: 16, color: Colors.grey[600]),
                             const SizedBox(width: 4),
                             Text(
-                              teacher.telefono,
+                              teacher.phone,
                               style: TextStyle(
                                 color: Colors.grey[600],
                                 fontSize: 14,
@@ -380,16 +390,7 @@ class _TeachersScreenState extends State<TeachersScreen> {
                 Column(
                   children: [
                     IconButton(
-                      onPressed: () async {
-                        // TODO: Implementar edición de profesores cuando esté disponible
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content:
-                                Text('Edición de profesores en desarrollo'),
-                            backgroundColor: Colors.orange,
-                          ),
-                        );
-                      },
+                      onPressed: () => _navigateToEditTeacher(teacher),
                       icon: Icon(Icons.edit, color: Colors.orange[600]),
                       tooltip: 'Editar profesor',
                     ),
@@ -408,7 +409,7 @@ class _TeachersScreenState extends State<TeachersScreen> {
     );
   }
 
-  void _showTeacherDetails(api_teacher.Teacher teacher) {
+  void _showTeacherDetails(Teacher teacher) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -496,8 +497,8 @@ class _TeachersScreenState extends State<TeachersScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildDetailRow('Email', teacher.email),
-                    _buildDetailRow('Teléfono', teacher.telefono),
-                    _buildDetailRow('Dirección', teacher.direccion),
+                    _buildDetailRow('Teléfono', teacher.phone),
+                    _buildDetailRow('Dirección', teacher.address),
                     _buildDetailRow(
                         'Estado', teacher.isActive ? 'Activo' : 'Inactivo'),
                     _buildDetailRow(
@@ -505,7 +506,7 @@ class _TeachersScreenState extends State<TeachersScreen> {
                     _buildDetailRow('Años de experiencia',
                         '${teacher.yearsOfExperience} años'),
                     _buildDetailRow('Fecha de registro',
-                        teacher.fechaCreacion.split(' ')[0]),
+                        _formatDate(teacher.hireDate)),
                   ],
                 ),
               ),

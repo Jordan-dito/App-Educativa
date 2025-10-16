@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/subject_model.dart';
-import '../../services/subject_service.dart';
+import '../../services/subject_api_service.dart';
 import 'add_edit_subject_screen.dart';
 
 class SubjectsScreen extends StatefulWidget {
@@ -11,19 +11,17 @@ class SubjectsScreen extends StatefulWidget {
 }
 
 class _SubjectsScreenState extends State<SubjectsScreen> {
-  final SubjectService _subjectService = SubjectService();
+  final SubjectApiService _subjectApiService = SubjectApiService();
   final TextEditingController _searchController = TextEditingController();
   
   List<Subject> _subjects = [];
   List<Subject> _filteredSubjects = [];
   bool _isLoading = true;
-  String _selectedDepartment = 'Todos';
-  String _selectedLevel = 'Todos';
+  String _selectedSection = 'Todos';
   String _selectedGrade = 'Todos';
 
-  final List<String> _departments = ['Todos', ...Subject.departments];
-  final List<String> _levels = ['Todos', ...Subject.levels];
-  List<String> _grades = ['Todos'];
+  final List<String> _sections = ['Todos', 'A', 'B', 'C', 'D'];
+  final List<String> _grades = ['Todos', '1°', '2°', '3°', '4°', '5°', '6°', '7°', '8°', '9°', '10°', '11°'];
 
   @override
   void initState() {
@@ -42,14 +40,20 @@ class _SubjectsScreenState extends State<SubjectsScreen> {
     setState(() => _isLoading = true);
     
     try {
-      final subjects = await _subjectService.getAllSubjects();
+      debugPrint('📚 DEBUG SubjectsScreen._loadSubjects: Cargando materias desde API...');
+      
+      final subjects = await _subjectApiService.getAllSubjects();
+      
       setState(() {
         _subjects = subjects;
         _filteredSubjects = subjects;
         _isLoading = false;
       });
+      
+      debugPrint('📚 DEBUG SubjectsScreen._loadSubjects: ${subjects.length} materias cargadas');
     } catch (e) {
       setState(() => _isLoading = false);
+      debugPrint('❌ ERROR SubjectsScreen._loadSubjects: $e');
       _showErrorMessage('Error al cargar materias: $e');
     }
   }
@@ -61,36 +65,21 @@ class _SubjectsScreenState extends State<SubjectsScreen> {
       _filteredSubjects = _subjects.where((subject) {
         final matchesSearch = query.isEmpty ||
             subject.name.toLowerCase().contains(query) ||
-            subject.code.toLowerCase().contains(query) ||
-            subject.description.toLowerCase().contains(query) ||
-            subject.department.toLowerCase().contains(query);
+            subject.grade.toLowerCase().contains(query) ||
+            subject.section.toLowerCase().contains(query) ||
+            subject.academicYear.toLowerCase().contains(query);
         
-        final matchesDepartment = _selectedDepartment == 'Todos' ||
-            subject.department == _selectedDepartment;
-        
-        final matchesLevel = _selectedLevel == 'Todos' ||
-            subject.level == _selectedLevel;
+        final matchesSection = _selectedSection == 'Todos' ||
+            subject.section == _selectedSection;
         
         final matchesGrade = _selectedGrade == 'Todos' ||
             subject.grade == _selectedGrade;
         
-        return matchesSearch && matchesDepartment && matchesLevel && matchesGrade;
+        return matchesSearch && matchesSection && matchesGrade;
       }).toList();
     });
   }
 
-  void _updateGradesForLevel(String level) {
-    setState(() {
-      if (level == 'Todos') {
-        _grades = ['Todos'];
-        _selectedGrade = 'Todos';
-      } else {
-        _grades = ['Todos', ...Subject.getGradesForLevel(level)];
-        _selectedGrade = 'Todos';
-      }
-    });
-    _filterSubjects();
-  }
 
   Future<void> _navigateToAddSubject() async {
     final result = await Navigator.push(
@@ -140,7 +129,7 @@ class _SubjectsScreenState extends State<SubjectsScreen> {
 
     if (confirmed == true) {
       try {
-        await _subjectService.deleteSubject(subject.id!);
+        await _subjectApiService.deleteSubject(subject.id!);
         _showSuccessMessage('Materia eliminada exitosamente');
         _loadSubjects();
       } catch (e) {
@@ -150,65 +139,146 @@ class _SubjectsScreenState extends State<SubjectsScreen> {
   }
 
   void _showSubjectDetails(Subject subject) {
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(subject.name),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildDetailRow('Código:', subject.code),
-              _buildDetailRow('Descripción:', subject.description),
-              _buildDetailRow('Departamento:', subject.department),
-              _buildDetailRow('Nivel:', subject.level),
-              _buildDetailRow('Grado:', subject.grade),
-              _buildDetailRow('Créditos:', subject.credits.toString()),
-              _buildDetailRow('Horas/Semana:', subject.hoursPerWeek.toString()),
-              _buildDetailRow('Profesor:', subject.teacherName ?? 'Sin asignar'),
-              _buildDetailRow('Estado:', subject.isActive ? 'Activa' : 'Inactiva'),
-              _buildDetailRow('Creada:', _formatDate(subject.createdAt)),
-              if (subject.updatedAt != null)
-                _buildDetailRow('Actualizada:', _formatDate(subject.updatedAt!)),
-            ],
-          ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.7,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cerrar'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _navigateToEditSubject(subject);
-            },
-            child: const Text('Editar'),
-          ),
-        ],
+        child: Column(
+          children: [
+            // Handle
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+
+            // Header
+            Container(
+              padding: const EdgeInsets.all(24),
+              child: Row(
+                children: [
+                  // Avatar
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.purple[400]!,
+                          Colors.purple[600]!,
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Center(
+                      child: Text(
+                        subject.name.substring(0, 2).toUpperCase(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          subject.name,
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${subject.gradeSection} - ${subject.academicYear}',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Details
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  children: [
+                    _buildDetailSection('Información Académica', [
+                      _buildDetailItem('Grado', subject.grade),
+                      _buildDetailItem('Sección', subject.section),
+                      _buildDetailItem('Año Académico', subject.academicYear),
+                      _buildDetailItem('Estado', subject.isActive ? 'Activa' : 'Inactiva'),
+                    ]),
+                    const SizedBox(height: 24),
+                    _buildDetailSection('Profesor Asignado', [
+                      _buildDetailItem('Nombre', subject.teacherName ?? 'Sin asignar'),
+                    ]),
+                    const SizedBox(height: 24),
+                    _buildDetailSection('Información del Sistema', [
+                      _buildDetailItem('Creada', _formatDate(subject.createdAt)),
+                    ]),
+                  ],
+                ),
+              ),
+            ),
+
+            // Actions
+            Container(
+              padding: const EdgeInsets.all(24),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close),
+                      label: const Text('Cerrar'),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _navigateToEditSubject(subject);
+                      },
+                      icon: const Icon(Icons.edit),
+                      label: const Text('Editar'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.purple,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 100,
-            child: Text(
-              label,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-          Expanded(child: Text(value)),
-        ],
-      ),
-    );
-  }
 
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year}';
@@ -235,245 +305,543 @@ class _SubjectsScreenState extends State<SubjectsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: const Text('Gestión de Materias'),
-        backgroundColor: Colors.purple,
-        foregroundColor: Colors.white,
+        title: const Text(
+          'Materias',
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 24,
+            color: Colors.black87,
+          ),
+        ),
+        backgroundColor: Colors.transparent,
         elevation: 0,
+        centerTitle: false,
+        foregroundColor: Colors.black87,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadSubjects,
+          Container(
+            margin: const EdgeInsets.only(right: 16),
+            child: IconButton(
+              onPressed: () {
+                _showFilterBottomSheet(context);
+              },
+              icon: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.purple[50],
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.filter_list,
+                  color: Colors.purple[700],
+                ),
+              ),
+            ),
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _navigateToAddSubject,
-        backgroundColor: Colors.purple,
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
       body: Column(
         children: [
-          // Barra de búsqueda y filtros
+          // Barra de búsqueda mejorada
           Container(
-            padding: const EdgeInsets.all(16),
-            color: Colors.grey[100],
-            child: Column(
-              children: [
-                // Barra de búsqueda
-                TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: 'Buscar materias...',
-                    prefixIcon: const Icon(Icons.search),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    filled: true,
-                    fillColor: Colors.white,
-                  ),
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            child: SearchBar(
+              hintText: 'Buscar por nombre, grado o sección...',
+              leading: Icon(Icons.search, color: Colors.grey[600]),
+              elevation: WidgetStateProperty.all(0),
+              backgroundColor: WidgetStateProperty.all(Colors.white),
+              shape: WidgetStateProperty.all(
+                RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                const SizedBox(height: 16),
-                
-                // Filtros
-                Row(
-                  children: [
-                    // Filtro por departamento
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        value: _selectedDepartment,
-                        decoration: const InputDecoration(
-                          labelText: 'Departamento',
-                          border: OutlineInputBorder(),
-                          filled: true,
-                          fillColor: Colors.white,
-                        ),
-                        items: _departments.map((department) {
-                          return DropdownMenuItem(
-                            value: department,
-                            child: Text(department),
-                          );
-                        }).toList(),
-                        onChanged: (value) {
-                          setState(() => _selectedDepartment = value!);
-                          _filterSubjects();
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    
-                    // Filtro por nivel
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        value: _selectedLevel,
-                        decoration: const InputDecoration(
-                          labelText: 'Nivel',
-                          border: OutlineInputBorder(),
-                          filled: true,
-                          fillColor: Colors.white,
-                        ),
-                        items: _levels.map((level) {
-                          return DropdownMenuItem(
-                            value: level,
-                            child: Text(level),
-                          );
-                        }).toList(),
-                        onChanged: (value) {
-                          setState(() => _selectedLevel = value!);
-                          _updateGradesForLevel(value!);
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    
-                    // Filtro por grado
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        value: _selectedGrade,
-                        decoration: const InputDecoration(
-                          labelText: 'Grado',
-                          border: OutlineInputBorder(),
-                          filled: true,
-                          fillColor: Colors.white,
-                        ),
-                        items: _grades.map((grade) {
-                          return DropdownMenuItem(
-                            value: grade,
-                            child: Text(grade),
-                          );
-                        }).toList(),
-                        onChanged: (value) {
-                          setState(() => _selectedGrade = value!);
-                          _filterSubjects();
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+              ),
+              onChanged: (value) {
+                setState(() {
+                  _searchController.text = value;
+                });
+                _filterSubjects();
+              },
             ),
           ),
+
+          // Indicadores de filtros activos
+          if (_searchController.text.isNotEmpty || _selectedGrade != 'Todos' || _selectedSection != 'Todos')
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  if (_searchController.text.isNotEmpty)
+                    Chip(
+                      label: Text('Búsqueda: ${_searchController.text}'),
+                      onDeleted: () {
+                        setState(() {
+                          _searchController.clear();
+                        });
+                        _filterSubjects();
+                      },
+                      backgroundColor: Colors.blue[50],
+                      labelStyle: TextStyle(color: Colors.blue[700]),
+                      deleteIconColor: Colors.blue[700],
+                    ),
+                  if (_selectedGrade != 'Todos')
+                    Chip(
+                      label: Text('Grado: $_selectedGrade'),
+                      onDeleted: () {
+                        setState(() {
+                          _selectedGrade = 'Todos';
+                        });
+                        _filterSubjects();
+                      },
+                      backgroundColor: Colors.green[50],
+                      labelStyle: TextStyle(color: Colors.green[700]),
+                      deleteIconColor: Colors.green[700],
+                    ),
+                  if (_selectedSection != 'Todos')
+                    Chip(
+                      label: Text('Sección: $_selectedSection'),
+                      onDeleted: () {
+                        setState(() {
+                          _selectedSection = 'Todos';
+                        });
+                        _filterSubjects();
+                      },
+                      backgroundColor: Colors.orange[50],
+                      labelStyle: TextStyle(color: Colors.orange[700]),
+                      deleteIconColor: Colors.orange[700],
+                    ),
+                ],
+              ),
+            ),
           
           // Lista de materias
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _filteredSubjects.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.school_outlined,
-                              size: 64,
-                              color: Colors.grey[400],
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              _subjects.isEmpty
-                                  ? 'No hay materias registradas'
-                                  : 'No se encontraron materias',
-                              style: TextStyle(
-                                fontSize: 18,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              _subjects.isEmpty
-                                  ? 'Toca el botón + para agregar la primera materia'
-                                  : 'Intenta con otros filtros de búsqueda',
-                              style: TextStyle(
-                                color: Colors.grey[500],
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
+                    ? _buildEmptyState()
                     : RefreshIndicator(
                         onRefresh: _loadSubjects,
                         child: ListView.builder(
-                          padding: const EdgeInsets.all(16),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                           itemCount: _filteredSubjects.length,
                           itemBuilder: (context, index) {
                             final subject = _filteredSubjects[index];
-                            return Card(
-                              margin: const EdgeInsets.only(bottom: 8),
-                              child: ListTile(
-                                leading: CircleAvatar(
-                                  backgroundColor: subject.isActive 
-                                      ? Colors.purple 
-                                      : Colors.grey,
-                                  child: Text(
-                                    subject.code.substring(0, 2).toUpperCase(),
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                                title: Text(
-                                  subject.name,
-                                  style: const TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text('${subject.code} - ${subject.department}'),
-                                    Text('${subject.levelGrade} - ${subject.workload}'),
-                                    if (subject.teacherName != null)
-                                      Text('Profesor: ${subject.teacherName}'),
-                                  ],
-                                ),
-                                trailing: PopupMenuButton<String>(
-                                  onSelected: (value) {
-                                    switch (value) {
-                                      case 'view':
-                                        _showSubjectDetails(subject);
-                                        break;
-                                      case 'edit':
-                                        _navigateToEditSubject(subject);
-                                        break;
-                                      case 'delete':
-                                        _deleteSubject(subject);
-                                        break;
-                                    }
-                                  },
-                                  itemBuilder: (context) => [
-                                    const PopupMenuItem(
-                                      value: 'view',
-                                      child: ListTile(
-                                        leading: Icon(Icons.visibility),
-                                        title: Text('Ver detalles'),
-                                        contentPadding: EdgeInsets.zero,
-                                      ),
-                                    ),
-                                    const PopupMenuItem(
-                                      value: 'edit',
-                                      child: ListTile(
-                                        leading: Icon(Icons.edit),
-                                        title: Text('Editar'),
-                                        contentPadding: EdgeInsets.zero,
-                                      ),
-                                    ),
-                                    const PopupMenuItem(
-                                      value: 'delete',
-                                      child: ListTile(
-                                        leading: Icon(Icons.delete, color: Colors.red),
-                                        title: Text('Eliminar', style: TextStyle(color: Colors.red)),
-                                        contentPadding: EdgeInsets.zero,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                onTap: () => _showSubjectDetails(subject),
-                              ),
-                            );
+                            return _buildSubjectCard(subject);
                           },
                         ),
                       ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.school_outlined,
+                size: 80,
+                color: Colors.grey[400],
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              _searchController.text.isNotEmpty || _selectedGrade != 'Todos' || _selectedSection != 'Todos'
+                  ? 'No se encontraron materias'
+                  : 'No hay materias registradas',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[700],
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _subjects.isEmpty
+                  ? 'Toca el botón + para agregar la primera materia'
+                  : 'Intenta con otros filtros de búsqueda',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey[500],
+              ),
+              textAlign: TextAlign.center,
+            ),
+            if (_searchController.text.isEmpty && _selectedGrade == 'Todos' && _selectedSection == 'Todos') ...[
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: _navigateToAddSubject,
+                icon: const Icon(Icons.add),
+                label: const Text('Agregar Materia'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.purple[600],
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSubjectCard(Subject subject) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Card(
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: Colors.grey[200]!),
+        ),
+        child: InkWell(
+          onTap: () {
+            _showSubjectDetails(subject);
+          },
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                // Avatar
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: subject.isActive
+                          ? [Colors.purple[400]!, Colors.purple[600]!]
+                          : [Colors.grey[400]!, Colors.grey[600]!],
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Center(
+                    child: Text(
+                      subject.name.substring(0, 2).toUpperCase(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+
+                // Información de la materia
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        subject.name,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.green[50],
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              subject.gradeSection,
+                              style: TextStyle(
+                                color: Colors.green[700],
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.blue[50],
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              subject.academicYear,
+                              style: TextStyle(
+                                color: Colors.blue[700],
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      if (subject.teacherName != null)
+                        Row(
+                          children: [
+                            Icon(Icons.person, size: 16, color: Colors.grey[600]),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                subject.teacherName!,
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 14,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(
+                            subject.isActive ? Icons.check_circle : Icons.cancel,
+                            size: 16,
+                            color: subject.isActive ? Colors.green[600] : Colors.red[600],
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            subject.isActive ? 'Activa' : 'Inactiva',
+                            style: TextStyle(
+                              color: subject.isActive ? Colors.green[600] : Colors.red[600],
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Botones de acción
+                Column(
+                  children: [
+                    IconButton(
+                      onPressed: () => _navigateToEditSubject(subject),
+                      icon: Icon(Icons.edit, color: Colors.purple[600]),
+                      tooltip: 'Editar materia',
+                    ),
+                    IconButton(
+                      onPressed: () => _deleteSubject(subject),
+                      icon: Icon(Icons.delete_outline, color: Colors.red[600]),
+                      tooltip: 'Eliminar materia',
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailSection(String title, List<Widget> children) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 12),
+        ...children,
+      ],
+    );
+  }
+
+  Widget _buildDetailItem(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: Colors.grey[600],
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showFilterBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+
+            // Título
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Row(
+                children: [
+                  const Text(
+                    'Filtros',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const Spacer(),
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        _selectedGrade = 'Todos';
+                        _selectedSection = 'Todos';
+                        _searchController.clear();
+                      });
+                      _filterSubjects();
+                      Navigator.pop(context);
+                    },
+                    child: const Text('Limpiar'),
+                  ),
+                ],
+              ),
+            ),
+
+            // Filtro por grado
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Filtrar por grado',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _grades.map((grade) {
+                      final isSelected = grade == _selectedGrade;
+                      return FilterChip(
+                        label: Text(grade),
+                        selected: isSelected,
+                        onSelected: (selected) {
+                          setState(() {
+                            _selectedGrade = grade;
+                          });
+                          _filterSubjects();
+                        },
+                        backgroundColor: Colors.grey[100],
+                        selectedColor: Colors.purple[100],
+                        checkmarkColor: Colors.purple[700],
+                        labelStyle: TextStyle(
+                          color: isSelected ? Colors.purple[700] : Colors.grey[700],
+                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // Filtro por sección
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Filtrar por sección',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _sections.map((section) {
+                      final isSelected = section == _selectedSection;
+                      return FilterChip(
+                        label: Text(section),
+                        selected: isSelected,
+                        onSelected: (selected) {
+                          setState(() {
+                            _selectedSection = section;
+                          });
+                          _filterSubjects();
+                        },
+                        backgroundColor: Colors.grey[100],
+                        selectedColor: Colors.purple[100],
+                        checkmarkColor: Colors.purple[700],
+                        labelStyle: TextStyle(
+                          color: isSelected ? Colors.purple[700] : Colors.grey[700],
+                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 24),
+          ],
+        ),
       ),
     );
   }

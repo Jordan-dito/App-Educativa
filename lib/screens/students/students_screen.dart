@@ -84,6 +84,19 @@ class _StudentsScreenState extends State<StudentsScreen> {
     });
   }
 
+  Future<void> _navigateToEditStudent(Student student) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddEditStudentScreen(student: student),
+      ),
+    );
+
+    if (result == true) {
+      _loadStudents();
+    }
+  }
+
   Future<void> _deleteStudent(int studentId) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -351,16 +364,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
                 Column(
                   children: [
                     IconButton(
-                      onPressed: () async {
-                        // TODO: Implementar edición de estudiantes cuando esté disponible
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content:
-                                Text('Edición de estudiantes en desarrollo'),
-                            backgroundColor: Colors.orange,
-                          ),
-                        );
-                      },
+                      onPressed: () => _navigateToEditStudent(student),
                       icon: Icon(Icons.edit, color: Colors.blue[600]),
                       tooltip: 'Editar estudiante',
                     ),

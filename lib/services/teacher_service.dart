@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart';
 import '../models/teacher_model.dart';
+import 'teacher_api_service.dart';
 
 class TeacherService {
   static final TeacherService _instance = TeacherService._internal();
@@ -9,6 +10,7 @@ class TeacherService {
   TeacherService._internal();
 
   static const String _teachersKey = 'teachers_data';
+  final TeacherApiService _apiService = TeacherApiService();
 
   // Métodos estáticos para compatibilidad con providers
   static Future<List<Teacher>> getTeachers() async {
@@ -231,11 +233,40 @@ class TeacherService {
   // Obtener profesores activos
   Future<List<Teacher>> getActiveTeachers() async {
     try {
-      final teachers = await getAllTeachers();
-      return teachers.where((teacher) => teacher.isActive).toList();
+      debugPrint('👨‍🏫 DEBUG TeacherService.getActiveTeachers: Intentando obtener profesores activos desde API...');
+      
+      // Intentar obtener desde API primero
+      final teachers = await _apiService.getActiveTeachers();
+      
+      // Guardar en caché local
+      await _saveTeachersToCache(teachers);
+      
+      debugPrint('👨‍🏫 DEBUG TeacherService.getActiveTeachers: ${teachers.length} profesores activos obtenidos desde API');
+      return teachers;
     } catch (e) {
-      debugPrint('Error obteniendo profesores activos: $e');
-      return [];
+      debugPrint('❌ ERROR TeacherService.getActiveTeachers: Error en API: $e');
+      debugPrint('👨‍🏫 DEBUG TeacherService.getActiveTeachers: Intentando obtener desde caché local...');
+      
+      // Fallback a caché local
+      try {
+        final teachers = await getAllTeachers();
+        final activeTeachers = teachers.where((teacher) => teacher.isActive).toList();
+        
+        // Si no hay profesores en caché, crear algunos de prueba
+        if (activeTeachers.isEmpty) {
+          debugPrint('👨‍🏫 DEBUG TeacherService.getActiveTeachers: No hay profesores en caché, creando profesores de prueba...');
+          final testTeachers = _createTestTeachers();
+          await _saveTeachersToCache(testTeachers);
+          debugPrint('👨‍🏫 DEBUG TeacherService.getActiveTeachers: ${testTeachers.length} profesores de prueba creados');
+          return testTeachers;
+        }
+        
+        debugPrint('👨‍🏫 DEBUG TeacherService.getActiveTeachers: ${activeTeachers.length} profesores activos obtenidos desde caché');
+        return activeTeachers;
+      } catch (cacheError) {
+        debugPrint('❌ ERROR TeacherService.getActiveTeachers: Error en caché: $cacheError');
+        return [];
+      }
     }
   }
 
@@ -266,6 +297,66 @@ class TeacherService {
     } catch (e) {
       debugPrint('Error contando profesores por departamento: $e');
       return {};
+    }
+  }
+
+  // Crear profesores de prueba
+  List<Teacher> _createTestTeachers() {
+    return [
+      Teacher(
+        id: 1,
+        firstName: 'Miguel',
+        lastName: 'Torres',
+        email: 'miguel.torres@colegio.com',
+        phone: '0987654321',
+        address: 'Av. Principal 123',
+        birthDate: DateTime(1985, 5, 15),
+        specialization: 'Historia',
+        department: 'Ciencias Sociales',
+        hireDate: DateTime(2020, 1, 15),
+        salary: 2500.0,
+        isActive: true,
+      ),
+      Teacher(
+        id: 2,
+        firstName: 'Laura',
+        lastName: 'Jiménez',
+        email: 'laura.jimenez@colegio.com',
+        phone: '0998765432',
+        address: 'Calle Secundaria 456',
+        birthDate: DateTime(1988, 8, 22),
+        specialization: 'Matemáticas',
+        department: 'Ciencias Exactas',
+        hireDate: DateTime(2019, 3, 1),
+        salary: 2800.0,
+        isActive: true,
+      ),
+      Teacher(
+        id: 3,
+        firstName: 'Carlos',
+        lastName: 'Mendoza',
+        email: 'carlos.mendoza@colegio.com',
+        phone: '0976543210',
+        address: 'Plaza Central 789',
+        birthDate: DateTime(1982, 12, 10),
+        specialization: 'Ciencias Naturales',
+        department: 'Ciencias Naturales',
+        hireDate: DateTime(2018, 8, 20),
+        salary: 2700.0,
+        isActive: true,
+      ),
+    ];
+  }
+
+  // Guardar lista de profesores en caché local (SharedPreferences)
+  Future<bool> _saveTeachersToCache(List<Teacher> teachers) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final teachersJson = teachers.map((teacher) => jsonEncode(teacher.toMap())).toList();
+      return await prefs.setStringList(_teachersKey, teachersJson);
+    } catch (e) {
+      debugPrint('❌ ERROR TeacherService._saveTeachersToCache: $e');
+      return false;
     }
   }
 

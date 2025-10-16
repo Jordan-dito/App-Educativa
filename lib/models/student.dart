@@ -14,6 +14,10 @@ class Student {
   final String estudianteEstado;
   final String fechaCreacion;
 
+  // Campos adicionales para compatibilidad con la pantalla de edición
+  DateTime get dateOfBirth => fechaNacimiento;
+  bool get isActive => estudianteEstado == 'activo';
+
   Student({
     required this.userId,
     required this.studentId,

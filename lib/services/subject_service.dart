@@ -2,36 +2,69 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart';
 import '../models/subject_model.dart';
+import 'subject_api_service.dart';
 
 class SubjectService {
   static const String _subjectsKey = 'subjects';
+  final SubjectApiService _apiService = SubjectApiService();
 
   // Obtener todas las materias
   Future<List<Subject>> getAllSubjects() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final subjectsJson = prefs.getStringList(_subjectsKey) ?? [];
+      debugPrint('📚 DEBUG SubjectService.getAllSubjects: Intentando obtener desde API...');
       
-      return subjectsJson.map((json) {
-        final map = jsonDecode(json) as Map<String, dynamic>;
-        return Subject.fromMap(map);
-      }).toList();
+      // Intentar obtener desde API primero
+      final subjects = await _apiService.getAllSubjects();
+      
+      // Guardar en caché local
+      await _saveSubjectsToCache(subjects);
+      
+      debugPrint('📚 DEBUG SubjectService.getAllSubjects: ${subjects.length} materias obtenidas desde API');
+      return subjects;
     } catch (e) {
-      debugPrint('Error al obtener materias: $e');
-      return [];
+      debugPrint('❌ ERROR SubjectService.getAllSubjects: Error en API: $e');
+      debugPrint('📚 DEBUG SubjectService.getAllSubjects: Intentando obtener desde caché local...');
+      
+      // Fallback a caché local
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final subjectsJson = prefs.getStringList(_subjectsKey) ?? [];
+        
+        final subjects = subjectsJson.map((json) {
+          final map = jsonDecode(json) as Map<String, dynamic>;
+          return Subject.fromMap(map);
+        }).toList();
+        
+        debugPrint('📚 DEBUG SubjectService.getAllSubjects: ${subjects.length} materias obtenidas desde caché');
+        return subjects;
+      } catch (cacheError) {
+        debugPrint('❌ ERROR SubjectService.getAllSubjects: Error en caché: $cacheError');
+        return [];
+      }
     }
   }
 
   // Obtener materia por ID
   Future<Subject?> getSubjectById(String id) async {
     try {
+      debugPrint('📚 DEBUG SubjectService.getSubjectById: Obteniendo materia ID: $id');
+      
+      // Intentar obtener desde API primero
+      final subject = await _apiService.getSubjectById(id);
+      
+      if (subject != null) {
+        debugPrint('📚 DEBUG SubjectService.getSubjectById: Materia encontrada en API');
+        return subject;
+      }
+      
+      // Fallback a búsqueda local
       final subjects = await getAllSubjects();
-      return subjects.firstWhere(
-        (subject) => subject.id == id,
-        orElse: () => throw Exception('Materia no encontrada'),
-      );
+      final localSubject = subjects.where((s) => s.id == id).firstOrNull;
+      
+      debugPrint('📚 DEBUG SubjectService.getSubjectById: Materia ${localSubject != null ? 'encontrada' : 'no encontrada'} en caché local');
+      return localSubject;
     } catch (e) {
-      debugPrint('Error al obtener materia por ID: $e');
+      debugPrint('❌ ERROR SubjectService.getSubjectById: $e');
       return null;
     }
   }
@@ -39,59 +72,138 @@ class SubjectService {
   // Insertar nueva materia
   Future<bool> insertSubject(Subject subject) async {
     try {
+      debugPrint('📚 DEBUG SubjectService.insertSubject: Creando materia: ${subject.name}');
+      
+      // Crear en API
+      final createdSubject = await _apiService.createSubject(subject);
+      
+      // Actualizar caché local
       final subjects = await getAllSubjects();
+      subjects.add(createdSubject);
+      await _saveSubjectsToCache(subjects);
       
-      // Verificar si el código ya existe
-      final existingSubject = subjects.where((s) => s.code == subject.code).firstOrNull;
-      if (existingSubject != null) {
-        throw Exception('Ya existe una materia con el código ${subject.code}');
-      }
-      
-      // Generar ID único
-      final newId = DateTime.now().millisecondsSinceEpoch.toString();
-      final newSubject = subject.copyWith(id: newId);
-      
-      subjects.add(newSubject);
-      return await _saveSubjects(subjects);
+      debugPrint('📚 DEBUG SubjectService.insertSubject: Materia creada exitosamente');
+      return true;
     } catch (e) {
-      debugPrint('Error al insertar materia: $e');
-      rethrow;
+      debugPrint('❌ ERROR SubjectService.insertSubject: $e');
+      
+      // Fallback a creación local
+      try {
+        final subjects = await getAllSubjects();
+        
+        // Verificar si ya existe una materia con el mismo nombre, grado y sección
+        final existingSubject = subjects.where((s) => 
+          s.name == subject.name && 
+          s.grade == subject.grade && 
+          s.section == subject.section
+        ).firstOrNull;
+        if (existingSubject != null) {
+          throw Exception('Ya existe una materia con el nombre ${subject.name} en ${subject.grade} ${subject.section}');
+        }
+        
+        // Generar ID único
+        final newId = DateTime.now().millisecondsSinceEpoch.toString();
+        final newSubject = subject.copyWith(id: newId);
+        
+        subjects.add(newSubject);
+        await _saveSubjectsToCache(subjects);
+        
+        debugPrint('📚 DEBUG SubjectService.insertSubject: Materia creada localmente');
+        return true;
+      } catch (localError) {
+        debugPrint('❌ ERROR SubjectService.insertSubject: Error local: $localError');
+        rethrow;
+      }
     }
   }
 
   // Actualizar materia
   Future<bool> updateSubject(Subject subject) async {
     try {
+      debugPrint('📚 DEBUG SubjectService.updateSubject: Actualizando materia ID: ${subject.id}');
+      
+      // Actualizar en API
+      final updatedSubject = await _apiService.updateSubject(subject);
+      
+      // Actualizar caché local
       final subjects = await getAllSubjects();
       final index = subjects.indexWhere((s) => s.id == subject.id);
-      
-      if (index == -1) {
-        throw Exception('Materia no encontrada');
-      }
-
-      // Verificar si el código ya existe en otra materia
-      final existingSubject = subjects.where((s) => s.code == subject.code && s.id != subject.id).firstOrNull;
-      if (existingSubject != null) {
-        throw Exception('Ya existe otra materia con el código ${subject.code}');
+      if (index != -1) {
+        subjects[index] = updatedSubject;
+        await _saveSubjectsToCache(subjects);
       }
       
-      subjects[index] = subject.copyWith(updatedAt: DateTime.now());
-      return await _saveSubjects(subjects);
+      debugPrint('📚 DEBUG SubjectService.updateSubject: Materia actualizada exitosamente');
+      return true;
     } catch (e) {
-      debugPrint('Error al actualizar materia: $e');
-      rethrow;
+      debugPrint('❌ ERROR SubjectService.updateSubject: $e');
+      
+      // Fallback a actualización local
+      try {
+        final subjects = await getAllSubjects();
+        final index = subjects.indexWhere((s) => s.id == subject.id);
+        
+        if (index == -1) {
+          throw Exception('Materia no encontrada');
+        }
+
+        // Verificar si ya existe otra materia con el mismo nombre, grado y sección
+        final existingSubject = subjects.where((s) => 
+          s.name == subject.name && 
+          s.grade == subject.grade && 
+          s.section == subject.section &&
+          s.id != subject.id
+        ).firstOrNull;
+        if (existingSubject != null) {
+          throw Exception('Ya existe otra materia con el nombre ${subject.name} en ${subject.grade} ${subject.section}');
+        }
+        
+        subjects[index] = subject;
+        await _saveSubjectsToCache(subjects);
+        
+        debugPrint('📚 DEBUG SubjectService.updateSubject: Materia actualizada localmente');
+        return true;
+      } catch (localError) {
+        debugPrint('❌ ERROR SubjectService.updateSubject: Error local: $localError');
+        rethrow;
+      }
     }
   }
 
   // Eliminar materia
   Future<bool> deleteSubject(String id) async {
     try {
-      final subjects = await getAllSubjects();
-      subjects.removeWhere((subject) => subject.id == id);
-      return await _saveSubjects(subjects);
-    } catch (e) {
-      debugPrint('Error al eliminar materia: $e');
+      debugPrint('📚 DEBUG SubjectService.deleteSubject: Eliminando materia ID: $id');
+      
+      // Eliminar en API
+      final success = await _apiService.deleteSubject(id);
+      
+      if (success) {
+        // Actualizar caché local
+        final subjects = await getAllSubjects();
+        subjects.removeWhere((subject) => subject.id == id);
+        await _saveSubjectsToCache(subjects);
+        
+        debugPrint('📚 DEBUG SubjectService.deleteSubject: Materia eliminada exitosamente');
+        return true;
+      }
+      
       return false;
+    } catch (e) {
+      debugPrint('❌ ERROR SubjectService.deleteSubject: $e');
+      
+      // Fallback a eliminación local
+      try {
+        final subjects = await getAllSubjects();
+        subjects.removeWhere((subject) => subject.id == id);
+        await _saveSubjectsToCache(subjects);
+        
+        debugPrint('📚 DEBUG SubjectService.deleteSubject: Materia eliminada localmente');
+        return true;
+      } catch (localError) {
+        debugPrint('❌ ERROR SubjectService.deleteSubject: Error local: $localError');
+        return false;
+      }
     }
   }
 
@@ -103,9 +215,9 @@ class SubjectService {
       
       return subjects.where((subject) {
         return subject.name.toLowerCase().contains(lowercaseQuery) ||
-               subject.code.toLowerCase().contains(lowercaseQuery) ||
-               subject.description.toLowerCase().contains(lowercaseQuery) ||
-               subject.department.toLowerCase().contains(lowercaseQuery);
+               subject.grade.toLowerCase().contains(lowercaseQuery) ||
+               subject.section.toLowerCase().contains(lowercaseQuery) ||
+               subject.academicYear.toLowerCase().contains(lowercaseQuery);
       }).toList();
     } catch (e) {
       debugPrint('Error al buscar materias: $e');
@@ -113,24 +225,13 @@ class SubjectService {
     }
   }
 
-  // Filtrar materias por departamento
-  Future<List<Subject>> getSubjectsByDepartment(String department) async {
+  // Filtrar materias por sección
+  Future<List<Subject>> getSubjectsBySection(String section) async {
     try {
       final subjects = await getAllSubjects();
-      return subjects.where((subject) => subject.department == department).toList();
+      return subjects.where((subject) => subject.section == section).toList();
     } catch (e) {
-      debugPrint('Error al filtrar materias por departamento: $e');
-      return [];
-    }
-  }
-
-  // Filtrar materias por nivel
-  Future<List<Subject>> getSubjectsByLevel(String level) async {
-    try {
-      final subjects = await getAllSubjects();
-      return subjects.where((subject) => subject.level == level).toList();
-    } catch (e) {
-      debugPrint('Error al filtrar materias por nivel: $e');
+      debugPrint('Error al filtrar materias por sección: $e');
       return [];
     }
   }
@@ -160,11 +261,27 @@ class SubjectService {
   // Obtener materias por profesor
   Future<List<Subject>> getSubjectsByTeacher(String teacherId) async {
     try {
-      final subjects = await getAllSubjects();
-      return subjects.where((subject) => subject.teacherId == teacherId).toList();
+      debugPrint('📚 DEBUG SubjectService.getSubjectsByTeacher: Obteniendo materias del profesor: $teacherId');
+      
+      // Intentar obtener desde API primero
+      final subjects = await _apiService.getSubjectsByTeacher(teacherId);
+      
+      debugPrint('📚 DEBUG SubjectService.getSubjectsByTeacher: ${subjects.length} materias encontradas');
+      return subjects;
     } catch (e) {
-      debugPrint('Error al obtener materias por profesor: $e');
-      return [];
+      debugPrint('❌ ERROR SubjectService.getSubjectsByTeacher: $e');
+      
+      // Fallback a búsqueda local
+      try {
+        final allSubjects = await getAllSubjects();
+        final filteredSubjects = allSubjects.where((subject) => subject.teacherId == teacherId).toList();
+        
+        debugPrint('📚 DEBUG SubjectService.getSubjectsByTeacher: ${filteredSubjects.length} materias encontradas en caché');
+        return filteredSubjects;
+      } catch (cacheError) {
+        debugPrint('❌ ERROR SubjectService.getSubjectsByTeacher: Error en caché: $cacheError');
+        return [];
+      }
     }
   }
 
@@ -179,7 +296,6 @@ class SubjectService {
       final updatedSubject = subject.copyWith(
         teacherId: teacherId,
         teacherName: teacherName,
-        updatedAt: DateTime.now(),
       );
 
       return await updateSubject(updatedSubject);
@@ -200,7 +316,6 @@ class SubjectService {
       final updatedSubject = subject.copyWith(
         teacherId: null,
         teacherName: null,
-        updatedAt: DateTime.now(),
       );
 
       return await updateSubject(updatedSubject);
@@ -221,23 +336,19 @@ class SubjectService {
       final subjectsWithTeacher = subjects.where((s) => s.teacherId != null).length;
       final subjectsWithoutTeacher = totalSubjects - subjectsWithTeacher;
       
-      // Estadísticas por departamento
-      final subjectsByDepartment = <String, int>{};
+      // Estadísticas por grado
+      final subjectsByGrade = <String, int>{};
       for (final subject in subjects) {
-        subjectsByDepartment[subject.department] = 
-            (subjectsByDepartment[subject.department] ?? 0) + 1;
+        subjectsByGrade[subject.grade] = 
+            (subjectsByGrade[subject.grade] ?? 0) + 1;
       }
       
-      // Estadísticas por nivel
-      final subjectsByLevel = <String, int>{};
+      // Estadísticas por sección
+      final subjectsBySection = <String, int>{};
       for (final subject in subjects) {
-        subjectsByLevel[subject.level] = 
-            (subjectsByLevel[subject.level] ?? 0) + 1;
+        subjectsBySection[subject.section] = 
+            (subjectsBySection[subject.section] ?? 0) + 1;
       }
-      
-      // Total de créditos y horas
-      final totalCredits = subjects.fold<int>(0, (sum, subject) => sum + subject.credits);
-      final totalHours = subjects.fold<int>(0, (sum, subject) => sum + subject.hoursPerWeek);
       
       return {
         'totalSubjects': totalSubjects,
@@ -245,12 +356,8 @@ class SubjectService {
         'inactiveSubjects': inactiveSubjects,
         'subjectsWithTeacher': subjectsWithTeacher,
         'subjectsWithoutTeacher': subjectsWithoutTeacher,
-        'subjectsByDepartment': subjectsByDepartment,
-        'subjectsByLevel': subjectsByLevel,
-        'totalCredits': totalCredits,
-        'totalHours': totalHours,
-        'averageCredits': totalSubjects > 0 ? (totalCredits / totalSubjects).toStringAsFixed(1) : '0',
-        'averageHours': totalSubjects > 0 ? (totalHours / totalSubjects).toStringAsFixed(1) : '0',
+        'subjectsByGrade': subjectsByGrade,
+        'subjectsBySection': subjectsBySection,
       };
     } catch (e) {
       debugPrint('Error al obtener estadísticas de materias: $e');
@@ -258,16 +365,21 @@ class SubjectService {
     }
   }
 
-  // Guardar lista de materias en SharedPreferences
-  Future<bool> _saveSubjects(List<Subject> subjects) async {
+  // Guardar lista de materias en caché local (SharedPreferences)
+  Future<bool> _saveSubjectsToCache(List<Subject> subjects) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final subjectsJson = subjects.map((subject) => jsonEncode(subject.toMap())).toList();
       return await prefs.setStringList(_subjectsKey, subjectsJson);
     } catch (e) {
-      debugPrint('Error al guardar materias: $e');
+      debugPrint('❌ ERROR SubjectService._saveSubjectsToCache: $e');
       return false;
     }
+  }
+
+  // Método legacy para compatibilidad
+  Future<bool> _saveSubjects(List<Subject> subjects) async {
+    return await _saveSubjectsToCache(subjects);
   }
 
   // Limpiar todas las materias (para testing)

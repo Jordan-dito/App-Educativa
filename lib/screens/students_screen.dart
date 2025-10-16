@@ -8,7 +8,21 @@ class StudentsScreen extends StatefulWidget {
 class _StudentsScreenState extends State<StudentsScreen> {
   final _searchController = TextEditingController();
   String _selectedGrade = 'Todos';
-  final List<String> _grades = ['Todos', '1°', '2°', '3°', '4°', '5°', '6°'];
+  final List<String> _grades = [
+    'Todos',
+    'Preescolar',
+    '1°',
+    '2°',
+    '3°',
+    '4°',
+    '5°',
+    '6°',
+    '7°',
+    '8°',
+    '9°',
+    '10°',
+    '11°'
+  ];
   bool _isLoading = false;
   String? _error;
 
@@ -209,7 +223,20 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
   String _selectedGrade = '1°';
   String _selectedSection = 'A';
   
-  final List<String> _grades = ['1°', '2°', '3°', '4°', '5°', '6°'];
+  final List<String> _grades = [
+    'Preescolar',
+    '1°',
+    '2°',
+    '3°',
+    '4°',
+    '5°',
+    '6°',
+    '7°',
+    '8°',
+    '9°',
+    '10°',
+    '11°'
+  ];
   final List<String> _sections = ['A', 'B', 'C', 'D'];
 
   @override
@@ -222,8 +249,13 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
     _addressController = TextEditingController(text: widget.student?['direccion'] ?? '');
     
     if (widget.student != null) {
-      _selectedGrade = widget.student!['grado'] ?? '1°';
-      _selectedSection = widget.student!['seccion'] ?? 'A';
+      // Validar que el grado del estudiante existe en la lista de grados disponibles
+      final studentGrade = widget.student!['grado'] ?? '1°';
+      _selectedGrade = _grades.contains(studentGrade) ? studentGrade : '1°';
+      
+      // Validar que la sección del estudiante existe en la lista de secciones disponibles
+      final studentSection = widget.student!['seccion'] ?? 'A';
+      _selectedSection = _sections.contains(studentSection) ? studentSection : 'A';
     }
   }
 
