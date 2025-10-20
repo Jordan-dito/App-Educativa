@@ -171,9 +171,13 @@ class SubjectApiService {
     try {
       debugPrint('📚 DEBUG SubjectApiService.deleteSubject: Eliminando materia ID: $id');
       
+      final requestData = {'materia_id': int.parse(id)};
+      debugPrint('📚 DEBUG SubjectApiService.deleteSubject: Datos a enviar: $requestData');
+      
       final response = await http.delete(
-        Uri.parse('$subjectsEndpoint?action=delete&materia_id=$id'),
+        Uri.parse('$subjectsEndpoint?action=delete'),
         headers: _headers,
+        body: json.encode(requestData),
       );
 
       debugPrint('📚 DEBUG SubjectApiService.deleteSubject: Status Code: ${response.statusCode}');

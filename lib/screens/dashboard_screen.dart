@@ -18,33 +18,50 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   int _selectedIndex = 0;
 
-  final List<DashboardItem> _menuItems = [
+  // Menús completos disponibles
+  final List<DashboardItem> _allMenuItems = [
     DashboardItem(
       title: 'Estudiantes',
       icon: Icons.school,
       color: Colors.green,
+      roles: ['administrador', 'profesor'], // Admin y Profesor pueden ver estudiantes
     ),
     DashboardItem(
       title: 'Profesores',
       icon: Icons.person,
       color: Colors.orange,
+      roles: ['administrador'], // Solo admin puede ver profesores
     ),
     DashboardItem(
       title: 'Materias',
       icon: Icons.book,
       color: Colors.purple,
+      roles: ['administrador', 'profesor'], // Admin y Profesor pueden ver materias
     ),
     DashboardItem(
       title: 'Calificaciones',
       icon: Icons.grade,
       color: Colors.red,
+      roles: ['administrador', 'profesor'], // Admin y Profesor pueden ver calificaciones
     ),
     DashboardItem(
       title: 'Reportes',
       icon: Icons.analytics,
       color: Colors.teal,
+      roles: ['administrador', 'profesor'], // Admin y Profesor pueden ver reportes
+    ),
+    DashboardItem(
+      title: 'Pendientes',
+      icon: Icons.pending_actions,
+      color: Colors.amber,
+      roles: ['estudiante'], // Solo estudiantes ven pendientes
     ),
   ];
+
+  // Obtener menús según el rol del usuario
+  List<DashboardItem> get _menuItems {
+    return _allMenuItems.where((item) => item.roles.contains(widget.user.rol.toLowerCase())).toList();
+  }
 
   void _logout() {
     showDialog(
@@ -97,6 +114,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
       case 'Materias':
         screen = const SubjectsScreen();
         break;
+      case 'Pendientes':
+        // Mostrar contenido de pendientes para estudiantes
+        setState(() {
+          _selectedIndex = index + 1;
+        });
+        return;
       default:
         // Para módulos que aún no están implementados
         setState(() {
@@ -348,6 +371,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildModuleContent(String moduleName) {
+    // Contenido específico para el módulo de Pendientes
+    if (moduleName == 'Pendientes') {
+      return _buildPendingContent();
+    }
+
+    // Contenido genérico para otros módulos
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -373,6 +402,250 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPendingContent() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Card(
+            elevation: 4,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                gradient: LinearGradient(
+                  colors: [Colors.amber[600]!, Colors.amber[400]!],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(
+                    Icons.pending_actions,
+                    size: 32,
+                    color: Colors.white,
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Tareas Pendientes',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Estudiante: ${widget.user.nombre} ${widget.user.apellido}',
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Lista de pendientes
+          Text(
+            'Actividades Pendientes',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[800],
+                ),
+          ),
+          const SizedBox(height: 16),
+
+          // Tareas pendientes de ejemplo
+          _buildPendingTask(
+            title: 'Matemáticas - Tarea de Álgebra',
+            subject: 'Matemáticas',
+            dueDate: '15 de Diciembre',
+            priority: 'Alta',
+            color: Colors.red,
+          ),
+          _buildPendingTask(
+            title: 'Historia - Ensayo sobre Independencia',
+            subject: 'Historia',
+            dueDate: '18 de Diciembre',
+            priority: 'Media',
+            color: Colors.orange,
+          ),
+          _buildPendingTask(
+            title: 'Ciencias - Proyecto de Biología',
+            subject: 'Ciencias Naturales',
+            dueDate: '20 de Diciembre',
+            priority: 'Alta',
+            color: Colors.red,
+          ),
+          _buildPendingTask(
+            title: 'Literatura - Lectura de Novela',
+            subject: 'Lengua y Literatura',
+            dueDate: '22 de Diciembre',
+            priority: 'Baja',
+            color: Colors.green,
+          ),
+
+          const SizedBox(height: 24),
+
+          // Estadísticas rápidas
+          Text(
+            'Resumen Académico',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[800],
+                ),
+          ),
+          const SizedBox(height: 16),
+
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatCard(
+                  title: 'Tareas Completadas',
+                  value: '12',
+                  icon: Icons.check_circle,
+                  color: Colors.green,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildStatCard(
+                  title: 'Pendientes',
+                  value: '4',
+                  icon: Icons.pending,
+                  color: Colors.amber,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatCard(
+                  title: 'Promedio General',
+                  value: '8.5',
+                  icon: Icons.grade,
+                  color: Colors.blue,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildStatCard(
+                  title: 'Asistencia',
+                  value: '95%',
+                  icon: Icons.schedule,
+                  color: Colors.teal,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPendingTask({
+    required String title,
+    required String subject,
+    required String dueDate,
+    required String priority,
+    required Color color,
+  }) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Container(
+              width: 4,
+              height: 60,
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subject,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(Icons.schedule, size: 16, color: Colors.grey[500]),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Entrega: $dueDate',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[500],
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: color.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          priority,
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: color,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            IconButton(
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Marcando como completada: $title')),
+                );
+              },
+              icon: Icon(Icons.check_circle_outline, color: Colors.green[600]),
+              tooltip: 'Marcar como completada',
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -499,10 +772,12 @@ class DashboardItem {
   final String title;
   final IconData icon;
   final Color color;
+  final List<String> roles;
 
   DashboardItem({
     required this.title,
     required this.icon,
     required this.color,
+    required this.roles,
   });
 }
