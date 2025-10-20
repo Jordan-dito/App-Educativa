@@ -32,6 +32,44 @@ class StudentApiService {
     }
   }
 
+  // Actualizar estudiante
+  Future<bool> updateStudent(Student student) async {
+    try {
+      print(
+          '🎓 DEBUG StudentApiService.updateStudent: Actualizando estudiante ${student.id}...');
+
+      final studentData = {
+        'estudiante_id': student.id,
+        'nombre': student.firstName,
+        'apellido': student.lastName,
+        'grado': student.grade,
+        'seccion': student.section,
+        'telefono': student.phone,
+        'direccion': student.address,
+        'fecha_nacimiento':
+            student.dateOfBirth?.toIso8601String().split('T')[0],
+      };
+
+      print(
+          '🎓 DEBUG StudentApiService.updateStudent: Datos a enviar: $studentData');
+
+      final response = await AuthService.editStudent(studentData);
+
+      if (response.success) {
+        print(
+            '✅ DEBUG StudentApiService.updateStudent: Estudiante actualizado exitosamente');
+        return true;
+      } else {
+        print(
+            '❌ DEBUG StudentApiService.updateStudent: Error: ${response.message}');
+        return false;
+      }
+    } catch (e) {
+      print('❌ DEBUG StudentApiService.updateStudent: Error: $e');
+      return false;
+    }
+  }
+
   // Eliminar estudiante
   Future<bool> deleteStudent(int studentId) async {
     try {

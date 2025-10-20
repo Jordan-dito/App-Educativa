@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/student.dart';
 import '../../services/auth_service.dart';
+import '../../services/student_api_service.dart';
 import '../../services/user_service.dart';
 
 class AddEditStudentScreen extends StatefulWidget {
@@ -14,6 +15,7 @@ class AddEditStudentScreen extends StatefulWidget {
 
 class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
   final _formKey = GlobalKey<FormState>();
+  final StudentApiService _studentApiService = StudentApiService();
 
   late TextEditingController _firstNameController;
   late TextEditingController _lastNameController;
@@ -198,14 +200,32 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
           _showErrorMessage('Error al crear estudiante: ${response.message}');
         }
       } else {
-        // Actualizar estudiante existente (usar servicio local)
-        // TODO: Implementar actualización cuando esté disponible
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Actualización de estudiantes en desarrollo'),
-            backgroundColor: Colors.orange,
-          ),
+        // Actualizar estudiante existente
+        final updatedStudent = Student(
+          userId: widget.student!.userId,
+          studentId: widget.student!.studentId,
+          email: _emailController.text.trim(),
+          rol: widget.student!.rol,
+          userEstado: widget.student!.userEstado,
+          nombre: _firstNameController.text.trim(),
+          apellido: _lastNameController.text.trim(),
+          grado: _selectedGrade,
+          seccion: _selectedSection,
+          telefono: _phoneController.text.trim(),
+          direccion: _addressController.text.trim(),
+          fechaNacimiento: _birthDate!,
+          estudianteEstado: _isActive ? 'activo' : 'inactivo',
+          fechaCreacion: widget.student!.fechaCreacion,
         );
+
+        final success = await _studentApiService.updateStudent(updatedStudent);
+
+        if (success) {
+          _showSuccessMessage('Estudiante actualizado exitosamente');
+          Navigator.pop(context, true); // Volver a la lista de estudiantes
+        } else {
+          _showErrorMessage('Error al actualizar estudiante');
+        }
       }
     } catch (e) {
       _showErrorMessage('Error al guardar estudiante: $e');

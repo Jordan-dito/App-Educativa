@@ -27,22 +27,24 @@ class TeacherService {
     try {
       final teacher = Teacher.fromMap(teacherData);
       final service = TeacherService();
-      
+
       // Obtener profesores existentes
       List<Teacher> teachers = await service.getAllTeachers();
-      
+
       // Asignar ID único
-      int newId = teachers.isEmpty ? 1 : teachers.map((t) => t.id ?? 0).reduce((a, b) => a > b ? a : b) + 1;
+      int newId = teachers.isEmpty
+          ? 1
+          : teachers.map((t) => t.id ?? 0).reduce((a, b) => a > b ? a : b) + 1;
       teacher.id = newId;
-      
+
       // Agregar nuevo profesor
       teachers.add(teacher);
-      
+
       // Guardar en SharedPreferences
       final prefs = await SharedPreferences.getInstance();
       final teachersJson = teachers.map((t) => t.toMap()).toList();
       await prefs.setString(_teachersKey, jsonEncode(teachersJson));
-      
+
       return teacher;
     } catch (e) {
       debugPrint('Error creando profesor: $e');
@@ -50,29 +52,66 @@ class TeacherService {
     }
   }
 
-  static Future<Teacher> updateTeacher(int id, Map<String, dynamic> teacherData) async {
+  static Future<Teacher> updateTeacher(
+      int id, Map<String, dynamic> teacherData) async {
     try {
       final service = TeacherService();
-      
-      // Obtener profesor existente
-      final existingTeacher = await service.getTeacherById(id);
-      if (existingTeacher == null) {
-        throw Exception('Profesor no encontrado');
-      }
-      
-      // Crear profesor actualizado con los nuevos datos
-      final updatedTeacher = Teacher.fromMap({
-        ...existingTeacher.toMap(),
-        ...teacherData,
-        'id': id, // Mantener el ID original
-      });
-      
-      // Actualizar usando el método existente
-      final success = await service._updateTeacherInstance(updatedTeacher);
+
+      // Preparar datos para la API directamente
+      final apiData = {
+        'nombre': teacherData['firstName'] ?? '',
+        'apellido': teacherData['lastName'] ?? '',
+        'telefono': teacherData['phone'] ?? '',
+        'direccion': teacherData['address'] ?? '',
+        'fecha_contratacion': teacherData['hireDate'] != null
+            ? (teacherData['hireDate'] is DateTime
+                ? (teacherData['hireDate'] as DateTime)
+                    .toIso8601String()
+                    .split('T')[0]
+                : teacherData['hireDate'].toString())
+            : '',
+      };
+
+      // Actualizar usando la API
+      final success = await service._apiService.updateTeacher(id, apiData);
       if (!success) {
-        throw Exception('Error al actualizar profesor');
+        throw Exception('Error al actualizar profesor en la API');
       }
-      
+
+      // Intentar obtener el profesor actualizado desde la API
+      Teacher? updatedTeacher;
+      try {
+        updatedTeacher = await service.getTeacherById(id);
+      } catch (e) {
+        debugPrint(
+            'No se pudo obtener el profesor actualizado desde la API: $e');
+      }
+
+      // Si no se pudo obtener desde la API, crear uno con los datos proporcionados
+      if (updatedTeacher == null) {
+        updatedTeacher = Teacher(
+          id: id,
+          firstName: teacherData['firstName'] ?? '',
+          lastName: teacherData['lastName'] ?? '',
+          email: teacherData['email'] ?? '',
+          phone: teacherData['phone'] ?? '',
+          address: teacherData['address'] ?? '',
+          birthDate: DateTime.now().subtract(const Duration(days: 365 * 30)),
+          specialization: teacherData['specialization'] ?? 'General',
+          department: teacherData['department'] ?? 'General',
+          hireDate: teacherData['hireDate'] ?? DateTime.now(),
+          salary: teacherData['salary'] ?? 0.0,
+          isActive: teacherData['isActive'] ?? true,
+        );
+      }
+
+      // Actualizar también en caché local si es posible
+      try {
+        await service._updateTeacherInstance(updatedTeacher);
+      } catch (e) {
+        debugPrint('No se pudo actualizar el caché local: $e');
+      }
+
       return updatedTeacher;
     } catch (e) {
       debugPrint('Error actualizando profesor: $e');
@@ -100,11 +139,11 @@ class TeacherService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final teachersData = prefs.getString(_teachersKey);
-      
+
       if (teachersData == null) {
         return [];
       }
-      
+
       final List<dynamic> teachersJson = jsonDecode(teachersData);
       return teachersJson.map((json) => Teacher.fromMap(json)).toList();
     } catch (e) {
@@ -117,21 +156,23 @@ class TeacherService {
   Future<int> insertTeacher(Teacher teacher) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      
+
       // Obtener profesores existentes
       List<Teacher> teachers = await getAllTeachers();
-      
+
       // Asignar ID único
-      int newId = teachers.isEmpty ? 1 : teachers.map((t) => t.id ?? 0).reduce((a, b) => a > b ? a : b) + 1;
+      int newId = teachers.isEmpty
+          ? 1
+          : teachers.map((t) => t.id ?? 0).reduce((a, b) => a > b ? a : b) + 1;
       teacher.id = newId;
-      
+
       // Agregar nuevo profesor
       teachers.add(teacher);
-      
+
       // Guardar en SharedPreferences
       final teachersJson = teachers.map((t) => t.toMap()).toList();
       await prefs.setString(_teachersKey, jsonEncode(teachersJson));
-      
+
       return newId;
     } catch (e) {
       debugPrint('Error insertando profesor: $e');
@@ -142,6 +183,17 @@ class TeacherService {
   // Obtener profesor por ID
   Future<Teacher?> getTeacherById(int id) async {
     try {
+      // Intentar obtener desde la API primero
+      try {
+        final teacher = await _apiService.getTeacherById(id.toString());
+        if (teacher != null) {
+          return teacher;
+        }
+      } catch (e) {
+        debugPrint('Error obteniendo profesor desde API: $e');
+      }
+
+      // Fallback a caché local
       final teachers = await getAllTeachers();
       for (Teacher teacher in teachers) {
         if (teacher.id == id) {
@@ -160,7 +212,7 @@ class TeacherService {
     try {
       final prefs = await SharedPreferences.getInstance();
       List<Teacher> teachers = await getAllTeachers();
-      
+
       // Encontrar y actualizar profesor
       for (int i = 0; i < teachers.length; i++) {
         if (teachers[i].id == teacher.id) {
@@ -168,11 +220,11 @@ class TeacherService {
           break;
         }
       }
-      
+
       // Guardar cambios
       final teachersJson = teachers.map((t) => t.toMap()).toList();
       await prefs.setString(_teachersKey, jsonEncode(teachersJson));
-      
+
       return true;
     } catch (e) {
       debugPrint('Error actualizando profesor: $e');
@@ -185,14 +237,14 @@ class TeacherService {
     try {
       final prefs = await SharedPreferences.getInstance();
       List<Teacher> teachers = await getAllTeachers();
-      
+
       // Filtrar profesor a eliminar
       teachers.removeWhere((teacher) => teacher.id == id);
-      
+
       // Guardar cambios
       final teachersJson = teachers.map((t) => t.toMap()).toList();
       await prefs.setString(_teachersKey, jsonEncode(teachersJson));
-      
+
       return true;
     } catch (e) {
       debugPrint('Error eliminando profesor: $e');
@@ -205,13 +257,13 @@ class TeacherService {
     try {
       final teachers = await getAllTeachers();
       final lowercaseQuery = query.toLowerCase();
-      
+
       return teachers.where((teacher) {
         return teacher.firstName.toLowerCase().contains(lowercaseQuery) ||
-               teacher.lastName.toLowerCase().contains(lowercaseQuery) ||
-               teacher.email.toLowerCase().contains(lowercaseQuery) ||
-               teacher.specialization.toLowerCase().contains(lowercaseQuery) ||
-               teacher.department.toLowerCase().contains(lowercaseQuery);
+            teacher.lastName.toLowerCase().contains(lowercaseQuery) ||
+            teacher.email.toLowerCase().contains(lowercaseQuery) ||
+            teacher.specialization.toLowerCase().contains(lowercaseQuery) ||
+            teacher.department.toLowerCase().contains(lowercaseQuery);
       }).toList();
     } catch (e) {
       debugPrint('Error buscando profesores: $e');
@@ -223,7 +275,9 @@ class TeacherService {
   Future<List<Teacher>> getTeachersByDepartment(String department) async {
     try {
       final teachers = await getAllTeachers();
-      return teachers.where((teacher) => teacher.department == department).toList();
+      return teachers
+          .where((teacher) => teacher.department == department)
+          .toList();
     } catch (e) {
       debugPrint('Error obteniendo profesores por departamento: $e');
       return [];
@@ -233,48 +287,59 @@ class TeacherService {
   // Obtener profesores activos
   Future<List<Teacher>> getActiveTeachers() async {
     try {
-      debugPrint('👨‍🏫 DEBUG TeacherService.getActiveTeachers: Intentando obtener profesores activos desde API...');
-      
+      debugPrint(
+          '👨‍🏫 DEBUG TeacherService.getActiveTeachers: Intentando obtener profesores activos desde API...');
+
       // Intentar obtener desde API primero
       final teachers = await _apiService.getActiveTeachers();
-      
+
       // Guardar en caché local
       await _saveTeachersToCache(teachers);
-      
-      debugPrint('👨‍🏫 DEBUG TeacherService.getActiveTeachers: ${teachers.length} profesores activos obtenidos desde API');
+
+      debugPrint(
+          '👨‍🏫 DEBUG TeacherService.getActiveTeachers: ${teachers.length} profesores activos obtenidos desde API');
       return teachers;
     } catch (e) {
       debugPrint('❌ ERROR TeacherService.getActiveTeachers: Error en API: $e');
-      debugPrint('👨‍🏫 DEBUG TeacherService.getActiveTeachers: Intentando obtener desde caché local...');
-      
+      debugPrint(
+          '👨‍🏫 DEBUG TeacherService.getActiveTeachers: Intentando obtener desde caché local...');
+
       // Fallback a caché local
       try {
         final teachers = await getAllTeachers();
-        final activeTeachers = teachers.where((teacher) => teacher.isActive).toList();
-        
+        final activeTeachers =
+            teachers.where((teacher) => teacher.isActive).toList();
+
         // Si no hay profesores en caché, crear algunos de prueba
         if (activeTeachers.isEmpty) {
-          debugPrint('👨‍🏫 DEBUG TeacherService.getActiveTeachers: No hay profesores en caché, creando profesores de prueba...');
+          debugPrint(
+              '👨‍🏫 DEBUG TeacherService.getActiveTeachers: No hay profesores en caché, creando profesores de prueba...');
           final testTeachers = _createTestTeachers();
           await _saveTeachersToCache(testTeachers);
-          debugPrint('👨‍🏫 DEBUG TeacherService.getActiveTeachers: ${testTeachers.length} profesores de prueba creados');
+          debugPrint(
+              '👨‍🏫 DEBUG TeacherService.getActiveTeachers: ${testTeachers.length} profesores de prueba creados');
           return testTeachers;
         }
-        
-        debugPrint('👨‍🏫 DEBUG TeacherService.getActiveTeachers: ${activeTeachers.length} profesores activos obtenidos desde caché');
+
+        debugPrint(
+            '👨‍🏫 DEBUG TeacherService.getActiveTeachers: ${activeTeachers.length} profesores activos obtenidos desde caché');
         return activeTeachers;
       } catch (cacheError) {
-        debugPrint('❌ ERROR TeacherService.getActiveTeachers: Error en caché: $cacheError');
+        debugPrint(
+            '❌ ERROR TeacherService.getActiveTeachers: Error en caché: $cacheError');
         return [];
       }
     }
   }
 
   // Obtener profesores por especialización
-  Future<List<Teacher>> getTeachersBySpecialization(String specialization) async {
+  Future<List<Teacher>> getTeachersBySpecialization(
+      String specialization) async {
     try {
       final teachers = await getAllTeachers();
-      return teachers.where((teacher) => teacher.specialization == specialization).toList();
+      return teachers
+          .where((teacher) => teacher.specialization == specialization)
+          .toList();
     } catch (e) {
       debugPrint('Error obteniendo profesores por especialización: $e');
       return [];
@@ -286,13 +351,14 @@ class TeacherService {
     try {
       final teachers = await getAllTeachers();
       Map<String, int> departmentCount = {};
-      
+
       for (Teacher teacher in teachers) {
         if (teacher.isActive) {
-          departmentCount[teacher.department] = (departmentCount[teacher.department] ?? 0) + 1;
+          departmentCount[teacher.department] =
+              (departmentCount[teacher.department] ?? 0) + 1;
         }
       }
-      
+
       return departmentCount;
     } catch (e) {
       debugPrint('Error contando profesores por departamento: $e');
@@ -352,7 +418,8 @@ class TeacherService {
   Future<bool> _saveTeachersToCache(List<Teacher> teachers) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final teachersJson = teachers.map((teacher) => jsonEncode(teacher.toMap())).toList();
+      final teachersJson =
+          teachers.map((teacher) => jsonEncode(teacher.toMap())).toList();
       return await prefs.setStringList(_teachersKey, teachersJson);
     } catch (e) {
       debugPrint('❌ ERROR TeacherService._saveTeachersToCache: $e');
@@ -364,7 +431,7 @@ class TeacherService {
   Future<Map<String, double>> getSalaryStatistics() async {
     try {
       final teachers = await getActiveTeachers();
-      
+
       if (teachers.isEmpty) {
         return {
           'average': 0.0,
@@ -373,9 +440,9 @@ class TeacherService {
           'total': 0.0,
         };
       }
-      
+
       final salaries = teachers.map((t) => t.salary).toList();
-      
+
       return {
         'average': salaries.reduce((a, b) => a + b) / salaries.length,
         'minimum': salaries.reduce((a, b) => a < b ? a : b),

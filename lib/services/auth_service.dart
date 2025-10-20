@@ -464,6 +464,72 @@ class AuthService {
     }
   }
 
+  // Editar estudiante
+  static Future<ApiResponse<User>> editStudent(
+      Map<String, dynamic> studentData) async {
+    try {
+      print(
+          '✏️ DEBUG AuthService.editStudent: Iniciando edición de estudiante...');
+      print('✏️ DEBUG AuthService.editStudent: Student data: $studentData');
+
+      final url = '${ApiConfig.baseUrl}/api/auth.php?action=edit-student';
+      print('✏️ DEBUG AuthService.editStudent: URL: $url');
+
+      final response = await http.put(
+        Uri.parse(url),
+        headers: ApiConfig.defaultHeaders,
+        body: json.encode(studentData),
+      );
+
+      print(
+          '✏️ DEBUG AuthService.editStudent: Status code: ${response.statusCode}');
+      print(
+          '✏️ DEBUG AuthService.editStudent: Response headers: ${response.headers}');
+      print(
+          '✏️ DEBUG AuthService.editStudent: Response body: ${response.body}');
+
+      if ((response.statusCode != 200 && response.statusCode != 201)) {
+        print(
+            '❌ DEBUG AuthService.editStudent: Error HTTP - Status: ${response.statusCode}');
+        return ApiResponse(
+          success: false,
+          message: 'Error del servidor: ${response.statusCode}',
+        );
+      }
+
+      final data = json.decode(response.body);
+      print('✏️ DEBUG AuthService.editStudent: Decoded data: $data');
+
+      // Validar estructura de respuesta
+      if (!data.containsKey('success')) {
+        print(
+            '❌ DEBUG AuthService.editStudent: Respuesta no contiene campo "success"');
+        return ApiResponse(
+          success: false,
+          message: 'Formato de respuesta inválido: falta campo "success"',
+        );
+      }
+
+      final apiResponse =
+          ApiResponse<User>.fromJson(data, (json) => User.fromJson(json));
+
+      print(
+          '✏️ DEBUG AuthService.editStudent: ApiResponse success: ${apiResponse.success}');
+      print(
+          '✏️ DEBUG AuthService.editStudent: ApiResponse message: ${apiResponse.message}');
+      print(
+          '✏️ DEBUG AuthService.editStudent: ApiResponse data: ${apiResponse.data?.toJson()}');
+
+      return apiResponse;
+    } catch (e) {
+      print('❌ DEBUG AuthService.editStudent: Error: $e');
+      return ApiResponse(
+        success: false,
+        message: 'Error de conexión: $e',
+      );
+    }
+  }
+
   // Eliminar estudiante
   static Future<ApiResponse<Map<String, dynamic>>> deleteStudent(
       int studentId) async {

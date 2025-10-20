@@ -144,24 +144,17 @@ class _AddEditTeacherScreenState extends State<AddEditTeacherScreen> {
           _showErrorMessage('Error al crear profesor: ${response.message}');
         }
       } else {
-        // Actualizar profesor existente (usar servicio local)
-        final teacher = Teacher(
-          id: widget.teacher?.id,
-          firstName: _firstNameController.text.trim(),
-          lastName: _lastNameController.text.trim(),
-          email: _emailController.text.trim(),
-          phone: _phoneController.text.trim(),
-          address: _addressController.text.trim(),
-          birthDate: widget.teacher?.birthDate ??
-              DateTime.now().subtract(const Duration(days: 365 * 30)),
-          specialization: widget.teacher?.specialization ?? 'General',
-          department: widget.teacher?.department ?? 'General',
-          hireDate: _hireDate!,
-          salary: widget.teacher?.salary ?? 0.0,
-          isActive: _isActive,
-        );
+        // Actualizar profesor existente usando la API
+        final teacherData = {
+          'firstName': _firstNameController.text.trim(),
+          'lastName': _lastNameController.text.trim(),
+          'phone': _phoneController.text.trim(),
+          'address': _addressController.text.trim(),
+          'hireDate': _hireDate!,
+          'isActive': _isActive,
+        };
 
-        await TeacherService.updateTeacher(teacher.id!, teacher.toMap());
+        await TeacherService.updateTeacher(widget.teacher!.id!, teacherData);
         _showSuccessMessage('Profesor actualizado exitosamente');
         Navigator.pop(context, true);
       }
