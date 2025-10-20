@@ -24,31 +24,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
       title: 'Estudiantes',
       icon: Icons.school,
       color: Colors.green,
-      roles: ['administrador', 'profesor'], // Admin y Profesor pueden ver estudiantes
+      roles: ['admin', 'profesor'], // Admin y Profesor pueden ver estudiantes
     ),
     DashboardItem(
       title: 'Profesores',
       icon: Icons.person,
       color: Colors.orange,
-      roles: ['administrador'], // Solo admin puede ver profesores
+      roles: ['admin'], // Solo admin puede ver profesores
     ),
     DashboardItem(
       title: 'Materias',
       icon: Icons.book,
       color: Colors.purple,
-      roles: ['administrador', 'profesor'], // Admin y Profesor pueden ver materias
+      roles: ['admin', 'profesor'], // Admin y Profesor pueden ver materias
     ),
     DashboardItem(
       title: 'Calificaciones',
       icon: Icons.grade,
       color: Colors.red,
-      roles: ['administrador', 'profesor'], // Admin y Profesor pueden ver calificaciones
+      roles: [
+        'admin',
+        'profesor'
+      ], // Admin y Profesor pueden ver calificaciones
     ),
     DashboardItem(
       title: 'Reportes',
       icon: Icons.analytics,
       color: Colors.teal,
-      roles: ['administrador', 'profesor'], // Admin y Profesor pueden ver reportes
+      roles: ['admin', 'profesor'], // Admin y Profesor pueden ver reportes
     ),
     DashboardItem(
       title: 'Pendientes',
@@ -60,7 +63,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // Obtener menús según el rol del usuario
   List<DashboardItem> get _menuItems {
-    return _allMenuItems.where((item) => item.roles.contains(widget.user.rol.toLowerCase())).toList();
+    return _allMenuItems
+        .where((item) => item.roles.contains(widget.user.rol.toLowerCase()))
+        .toList();
   }
 
   void _logout() {
@@ -415,7 +420,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           // Header
           Card(
             elevation: 4,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
@@ -616,7 +622,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                       const SizedBox(width: 16),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
                           color: color.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(8),

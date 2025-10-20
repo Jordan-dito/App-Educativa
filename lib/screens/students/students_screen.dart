@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../models/student.dart';
 import '../../services/student_api_service.dart';
+import '../../providers/student_provider.dart';
 import 'add_edit_student_screen.dart';
 
 class StudentsScreen extends StatefulWidget {
@@ -102,7 +104,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Confirmar eliminación'),
-        content: Text('¿Está seguro de eliminar a este estudiante?'),
+        content: const Text('¿Está seguro de eliminar a este estudiante?\n\nEsta acción cambiará el estado del estudiante a inactivo.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -118,10 +120,17 @@ class _StudentsScreenState extends State<StudentsScreen> {
     );
 
     if (confirmed == true) {
+      final studentProvider = Provider.of<StudentProvider>(context, listen: false);
+      
       try {
-        await _studentService.deleteStudent(studentId);
-        _showSuccessSnackBar('Estudiante eliminado exitosamente');
-        _loadStudents();
+        final success = await studentProvider.deleteStudent(studentId);
+        
+        if (success) {
+          _showSuccessSnackBar('Estudiante eliminado exitosamente');
+          _loadStudents();
+        } else {
+          _showErrorSnackBar(studentProvider.error ?? 'Error al eliminar estudiante');
+        }
       } catch (e) {
         _showErrorSnackBar('Error al eliminar estudiante: $e');
       }

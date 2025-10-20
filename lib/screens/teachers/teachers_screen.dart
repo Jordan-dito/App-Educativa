@@ -55,7 +55,25 @@ class _TeachersScreenState extends State<TeachersScreen> {
     _loadTeachers();
   }
 
+  @override
+  void dispose() {
+    // Limpiar recursos si es necesario
+    super.dispose();
+  }
+
+  // Método de prueba para verificar el estado
+  void _debugPrintState() {
+    print('🔍 DEBUG Estado actual:');
+    print('   - Total profesores: ${_teachers.length}');
+    print('   - Profesores filtrados: ${_filteredTeachers.length}');
+    print('   - Cargando: $_isLoading');
+    print('   - Búsqueda: "$_searchQuery"');
+    print('   - Departamento: $_selectedDepartment');
+    print('   - Estado: $_selectedStatus');
+  }
+
   Future<void> _loadTeachers() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
     try {
       print(
@@ -63,6 +81,7 @@ class _TeachersScreenState extends State<TeachersScreen> {
 
       final teachers = await _teacherService.getActiveTeachers();
 
+      if (!mounted) return;
       setState(() {
         _teachers = teachers;
         _filteredTeachers = teachers;
@@ -72,6 +91,7 @@ class _TeachersScreenState extends State<TeachersScreen> {
       print(
           '👨‍🏫 DEBUG TeachersScreen._loadTeachers: ${teachers.length} profesores cargados');
     } catch (e) {
+      if (!mounted) return;
       setState(() => _isLoading = false);
       print('❌ DEBUG TeachersScreen._loadTeachers: Error: $e');
       _showErrorSnackBar('Error al cargar profesores: $e');
@@ -79,6 +99,7 @@ class _TeachersScreenState extends State<TeachersScreen> {
   }
 
   void _filterTeachers() {
+    if (!mounted) return;
     setState(() {
       _filteredTeachers = _teachers.where((teacher) {
         final matchesSearch = _searchQuery.isEmpty ||
@@ -108,12 +129,14 @@ class _TeachersScreenState extends State<TeachersScreen> {
       ),
     );
 
-    if (result == true) {
+    if (result == true && mounted) {
       _loadTeachers();
     }
   }
 
   Future<void> _deleteTeacher(Teacher teacher) async {
+    if (!mounted) return;
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -133,18 +156,62 @@ class _TeachersScreenState extends State<TeachersScreen> {
       ),
     );
 
-    if (confirmed == true) {
+    if (confirmed == true && mounted) {
       try {
-        await TeacherService.deleteTeacher(teacher.id!);
-        _showSuccessSnackBar('Profesor eliminado exitosamente');
-        _loadTeachers();
+        print(
+            '🗑️ DEBUG: Iniciando eliminación del profesor ${teacher.fullName} (ID: ${teacher.id})');
+
+        // Mostrar indicador de carga
+        if (mounted) {
+          setState(() => _isLoading = true);
+        }
+
+        // Eliminar del servidor
+        final success = await TeacherService.deleteTeacher(teacher.id!);
+        print('🗑️ DEBUG: Resultado eliminación: $success');
+
+        if (success && mounted) {
+          // Crear nuevas listas sin el profesor eliminado
+          final originalLength = _teachers.length;
+          final filteredLength = _filteredTeachers.length;
+
+          final updatedTeachers =
+              _teachers.where((t) => t.id != teacher.id).toList();
+          final updatedFilteredTeachers =
+              _filteredTeachers.where((t) => t.id != teacher.id).toList();
+
+          print(
+              '🗑️ DEBUG: Lista original: $originalLength -> ${updatedTeachers.length}');
+          print(
+              '🗑️ DEBUG: Lista filtrada: $filteredLength -> ${updatedFilteredTeachers.length}');
+
+          // Actualizar el estado con las nuevas listas
+          setState(() {
+            _teachers = updatedTeachers;
+            _filteredTeachers = updatedFilteredTeachers;
+            _isLoading = false;
+          });
+
+          // Verificar el estado después de la eliminación
+          _debugPrintState();
+
+          _showSuccessSnackBar('Profesor eliminado exitosamente');
+        } else if (mounted) {
+          setState(() => _isLoading = false);
+          _showErrorSnackBar('No se pudo eliminar el profesor');
+        }
       } catch (e) {
-        _showErrorSnackBar('Error al eliminar profesor: $e');
+        print('❌ DEBUG: Error al eliminar profesor: $e');
+        if (mounted) {
+          setState(() => _isLoading = false);
+          _showErrorSnackBar('Error al eliminar profesor: $e');
+        }
       }
     }
   }
 
   void _showErrorSnackBar(String message) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -154,6 +221,7 @@ class _TeachersScreenState extends State<TeachersScreen> {
   }
 
   void _showSuccessSnackBar(String message) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -231,7 +299,7 @@ class _TeachersScreenState extends State<TeachersScreen> {
                     builder: (context) => const AddEditTeacherScreen(),
                   ),
                 );
-                if (result == true) {
+                if (result == true && mounted) {
                   _loadTeachers();
                 }
               },
@@ -505,8 +573,8 @@ class _TeachersScreenState extends State<TeachersScreen> {
                         'Fecha de contratación', _formatDate(teacher.hireDate)),
                     _buildDetailRow('Años de experiencia',
                         '${teacher.yearsOfExperience} años'),
-                    _buildDetailRow('Fecha de registro',
-                        _formatDate(teacher.hireDate)),
+                    _buildDetailRow(
+                        'Fecha de registro', _formatDate(teacher.hireDate)),
                   ],
                 ),
               ),
@@ -586,6 +654,7 @@ class _TeachersScreenState extends State<TeachersScreen> {
                   const Spacer(),
                   TextButton(
                     onPressed: () {
+                      if (!mounted) return;
                       setState(() {
                         _selectedDepartment = 'Todos';
                         _selectedStatus = 'Todos';
@@ -623,6 +692,7 @@ class _TeachersScreenState extends State<TeachersScreen> {
                         label: Text(department),
                         selected: isSelected,
                         onSelected: (selected) {
+                          if (!mounted) return;
                           setState(() {
                             _selectedDepartment = department;
                           });
@@ -670,6 +740,7 @@ class _TeachersScreenState extends State<TeachersScreen> {
                         label: Text(status),
                         selected: isSelected,
                         onSelected: (selected) {
+                          if (!mounted) return;
                           setState(() {
                             _selectedStatus = status;
                           });
@@ -766,6 +837,7 @@ class _TeachersScreenState extends State<TeachersScreen> {
                 ),
               ),
               onChanged: (value) {
+                if (!mounted) return;
                 setState(() {
                   _searchQuery = value;
                 });
@@ -788,6 +860,7 @@ class _TeachersScreenState extends State<TeachersScreen> {
                     _buildFilterChip(
                       label: 'Búsqueda: "$_searchQuery"',
                       onDeleted: () {
+                        if (!mounted) return;
                         setState(() {
                           _searchQuery = '';
                         });
@@ -798,6 +871,7 @@ class _TeachersScreenState extends State<TeachersScreen> {
                     _buildFilterChip(
                       label: 'Departamento: $_selectedDepartment',
                       onDeleted: () {
+                        if (!mounted) return;
                         setState(() {
                           _selectedDepartment = 'Todos';
                         });
@@ -808,6 +882,7 @@ class _TeachersScreenState extends State<TeachersScreen> {
                     _buildFilterChip(
                       label: 'Estado: $_selectedStatus',
                       onDeleted: () {
+                        if (!mounted) return;
                         setState(() {
                           _selectedStatus = 'Todos';
                         });
@@ -834,6 +909,7 @@ class _TeachersScreenState extends State<TeachersScreen> {
                 if (_filteredTeachers.isNotEmpty)
                   TextButton.icon(
                     onPressed: () {
+                      if (!mounted) return;
                       setState(() {
                         _searchQuery = '';
                         _selectedDepartment = 'Todos';
@@ -886,7 +962,7 @@ class _TeachersScreenState extends State<TeachersScreen> {
               builder: (context) => const AddEditTeacherScreen(),
             ),
           );
-          if (result == true) {
+          if (result == true && mounted) {
             _loadTeachers();
           }
         },

@@ -32,15 +32,23 @@ class StudentApiService {
     }
   }
 
-  // Eliminar estudiante (por ahora solo retorna true para compatibilidad)
+  // Eliminar estudiante
   Future<bool> deleteStudent(int studentId) async {
     try {
       print(
           '🎓 DEBUG StudentApiService.deleteStudent: Eliminando estudiante $studentId...');
-      // TODO: Implementar endpoint de eliminación cuando esté disponible
-      print(
-          '⚠️ DEBUG StudentApiService.deleteStudent: Endpoint de eliminación no implementado aún');
-      return true;
+
+      final response = await AuthService.deleteStudent(studentId);
+
+      if (response.success) {
+        print(
+            '✅ DEBUG StudentApiService.deleteStudent: Estudiante eliminado exitosamente');
+        return true;
+      } else {
+        print(
+            '❌ DEBUG StudentApiService.deleteStudent: Error: ${response.message}');
+        return false;
+      }
     } catch (e) {
       print('❌ DEBUG StudentApiService.deleteStudent: Error: $e');
       return false;
