@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import '../models/enrollment_model.dart';
+import 'user_service.dart';
 
 class EnrollmentApiService {
   static const String baseUrl = 'https://hermanosfrios.alwaysdata.net/api';
@@ -147,22 +148,36 @@ class EnrollmentApiService {
         }
       }
 
-      // Si no se encuentra con la API, usar mapeo directo como fallback
+      // Si no se encuentra con la API, intentar con endpoint alternativo
       debugPrint(
-          '📝 DEBUG EnrollmentApiService.getStudentIdByUserId: Usando mapeo directo como fallback');
+          '📝 DEBUG EnrollmentApiService.getStudentIdByUserId: Intentando endpoint alternativo');
 
-      // Mapeo basado en la base de datos actual (esto se puede actualizar dinámicamente)
-      final Map<int, int> userToStudentMapping = {
-        18: 12, // jordanmalave18@gmail.com -> JORDAN LAPO
-        20: 14, // fernando@colegio.com -> fernando chali
-        // Agregar más mapeos aquí cuando se agreguen nuevos usuarios
-      };
+      try {
+        // Intentar con endpoint específico para obtener estudiante por usuario_id
+        final altResponse = await http.get(
+          Uri.parse(
+              '$baseUrl/estudiantes.php?action=by-usuario&usuario_id=$userId'),
+          headers: _headers,
+        );
 
-      if (userToStudentMapping.containsKey(userId)) {
-        final studentId = userToStudentMapping[userId]!;
+        if (altResponse.statusCode == 200 || altResponse.statusCode == 201) {
+          final Map<String, dynamic> altJsonResponse =
+              json.decode(altResponse.body);
+
+          if (altJsonResponse['success'] == true &&
+              altJsonResponse['data'] != null) {
+            final studentId =
+                int.tryParse(altJsonResponse['data']['id'].toString());
+            if (studentId != null) {
+              debugPrint(
+                  '📝 DEBUG EnrollmentApiService.getStudentIdByUserId: Estudiante_id encontrado con endpoint alternativo: $studentId');
+              return studentId;
+            }
+          }
+        }
+      } catch (e) {
         debugPrint(
-            '📝 DEBUG EnrollmentApiService.getStudentIdByUserId: Mapeo directo - Usuario $userId -> Estudiante $studentId');
-        return studentId;
+            '⚠️ DEBUG EnrollmentApiService.getStudentIdByUserId: Error con endpoint alternativo: $e');
       }
 
       debugPrint(
@@ -180,22 +195,39 @@ class EnrollmentApiService {
       debugPrint(
           '📝 DEBUG EnrollmentApiService.getEnrollmentsByUserId: Obteniendo inscripciones para usuario_id: $userId');
 
-      // Método 1: Intentar obtener todas las inscripciones y filtrar por usuario_id
-      // Esto es más robusto porque usa la API que ya sabemos que funciona
+      // Método 1: Obtener todas las inscripciones y buscar por nombre de estudiante
+      // Esto funciona porque las inscripciones ya incluyen el nombre del estudiante
       try {
         final allEnrollments = await getAllEnrollments();
+        debugPrint(
+            '📝 DEBUG EnrollmentApiService.getEnrollmentsByUserId: Total de inscripciones obtenidas: ${allEnrollments.length}');
 
-        // Buscar inscripciones que correspondan al usuario_id
-        // Necesitamos obtener el estudiante_id primero
-        final studentId = await getStudentIdByUserId(userId);
+        // Obtener información del usuario actual para buscar por nombre
+        final currentUser = await UserService.getCurrentUser();
+        if (currentUser != null) {
+          final userFullName = '${currentUser.nombre} ${currentUser.apellido}'
+              .trim()
+              .toLowerCase();
+          debugPrint(
+              '📝 DEBUG EnrollmentApiService.getEnrollmentsByUserId: Buscando inscripciones para: $userFullName');
 
-        if (studentId != null) {
-          final userEnrollments = allEnrollments
-              .where((enrollment) => enrollment.estudianteId == studentId)
-              .toList();
+          // Buscar inscripciones que coincidan con el nombre del usuario
+          final userEnrollments = allEnrollments.where((enrollment) {
+            final enrollmentStudentName =
+                '${enrollment.estudianteNombre}'.trim().toLowerCase();
+            final matches = enrollmentStudentName.contains(userFullName) ||
+                userFullName.contains(enrollmentStudentName);
+
+            if (matches) {
+              debugPrint(
+                  '📝 DEBUG EnrollmentApiService.getEnrollmentsByUserId: ✅ Coincidencia encontrada: $enrollmentStudentName');
+            }
+
+            return matches;
+          }).toList();
 
           debugPrint(
-              '📝 DEBUG EnrollmentApiService.getEnrollmentsByUserId: Encontradas ${userEnrollments.length} inscripciones para usuario $userId (estudiante $studentId)');
+              '📝 DEBUG EnrollmentApiService.getEnrollmentsByUserId: Encontradas ${userEnrollments.length} inscripciones para usuario $userId');
 
           return userEnrollments;
         }
@@ -204,17 +236,18 @@ class EnrollmentApiService {
             '⚠️ DEBUG EnrollmentApiService.getEnrollmentsByUserId: Error con método 1: $e');
       }
 
-      // Método 2: Usar el método original como fallback
+      // Método 2: Intentar obtener estudiante_id y usar método tradicional
       final studentId = await getStudentIdByUserId(userId);
 
-      if (studentId == null) {
+      if (studentId != null) {
         debugPrint(
-            '⚠️ DEBUG EnrollmentApiService.getEnrollmentsByUserId: No se encontró estudiante_id para usuario_id: $userId');
-        return [];
+            '📝 DEBUG EnrollmentApiService.getEnrollmentsByUserId: Usando estudiante_id $studentId para obtener inscripciones');
+        return await getEnrollmentsByStudent(studentId);
       }
 
-      // Luego obtener las inscripciones usando el estudiante_id
-      return await getEnrollmentsByStudent(studentId);
+      debugPrint(
+          '⚠️ DEBUG EnrollmentApiService.getEnrollmentsByUserId: No se encontró estudiante_id para usuario_id: $userId');
+      return [];
     } catch (e) {
       debugPrint('❌ ERROR EnrollmentApiService.getEnrollmentsByUserId: $e');
       return [];
