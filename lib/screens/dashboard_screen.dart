@@ -3,8 +3,10 @@ import '../models/user.dart';
 import '../services/user_service.dart';
 import 'login_screen.dart';
 import 'students/students_screen.dart';
+import 'students/student_enrollments_screen.dart';
 import 'teachers/teachers_screen.dart';
 import 'subjects/subjects_screen.dart';
+import 'enrollments/enrollments_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final User user;
@@ -37,6 +39,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
       icon: Icons.book,
       color: Colors.purple,
       roles: ['admin', 'profesor'], // Admin y Profesor pueden ver materias
+    ),
+    DashboardItem(
+      title: 'Inscripciones',
+      icon: Icons.assignment_ind,
+      color: Colors.indigo,
+      roles: ['admin'], // Solo admin puede ver inscripciones
+    ),
+    DashboardItem(
+      title: 'Mis Materias',
+      icon: Icons.school,
+      color: Colors.teal,
+      roles: ['estudiante'], // Solo estudiantes pueden ver sus materias
     ),
     DashboardItem(
       title: 'Calificaciones',
@@ -118,6 +132,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
         break;
       case 'Materias':
         screen = const SubjectsScreen();
+        break;
+      case 'Inscripciones':
+        screen = const EnrollmentsScreen();
+        break;
+      case 'Mis Materias':
+        screen = const StudentEnrollmentsScreen();
         break;
       case 'Pendientes':
         // Mostrar contenido de pendientes para estudiantes
