@@ -322,51 +322,53 @@ class _StudentEnrollmentsScreenState extends State<StudentEnrollmentsScreen> {
                                 color: Colors.grey[500],
                               ),
                             ),
-                            const SizedBox(height: 16),
-                            // Información de debug para el usuario
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.blue[50],
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.blue[200]!),
+                            // Información técnica solo cuando no hay inscripciones (no cuando está buscando)
+                            if (_searchQuery.isEmpty) ...[
+                              const SizedBox(height: 16),
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue[50],
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: Colors.blue[200]!),
+                                ),
+                                child: Column(
+                                  children: [
+                                    Text(
+                                      'Información técnica:',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.blue[700],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Tu ID de estudiante es: ${_currentUser?.id ?? 'No disponible'}',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.blue[600],
+                                      ),
+                                    ),
+                                    Text(
+                                      'El sistema no encontró inscripciones para este ID',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.blue[600],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Si acabas de inscribirte, presiona el botón de actualizar (🔄) o usa el botón de debug (🐛) para verificar el estado',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.blue[500],
+                                        fontStyle: FontStyle.italic,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                              child: Column(
-                                children: [
-                                  Text(
-                                    'Información técnica:',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.blue[700],
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Tu ID de estudiante es: ${_currentUser?.id ?? 'No disponible'}',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.blue[600],
-                                    ),
-                                  ),
-                                  Text(
-                                    'El sistema no encontró inscripciones para este ID',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.blue[600],
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'Si acabas de inscribirte, presiona el botón de actualizar (🔄) o usa el botón de debug (🐛) para verificar el estado',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: Colors.blue[500],
-                                      fontStyle: FontStyle.italic,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                            ],
                           ],
                         ),
                       )
