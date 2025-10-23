@@ -19,6 +19,7 @@ class _StudentEnrollmentsScreenState extends State<StudentEnrollmentsScreen> {
   bool _isLoading = true;
   User? _currentUser;
   String _searchQuery = '';
+  bool _isDisposed = false;
 
   @override
   void initState() {
@@ -26,15 +27,21 @@ class _StudentEnrollmentsScreenState extends State<StudentEnrollmentsScreen> {
     _loadUserAndEnrollments();
   }
 
+  @override
+  void dispose() {
+    _isDisposed = true;
+    super.dispose();
+  }
+
   Future<void> _loadUserAndEnrollments() async {
-    if (!mounted) return;
+    if (_isDisposed || !mounted) return;
     setState(() => _isLoading = true);
 
     try {
       // Obtener el usuario actual
       final user = await UserService.getCurrentUser();
 
-      if (!mounted) return;
+      if (_isDisposed || !mounted) return;
       if (user == null) {
         _showErrorMessage('No se pudo obtener la información del usuario');
         return;
@@ -47,7 +54,7 @@ class _StudentEnrollmentsScreenState extends State<StudentEnrollmentsScreen> {
         return;
       }
 
-      if (!mounted) return;
+      if (_isDisposed || !mounted) return;
       setState(() {
         _currentUser = user;
       });
@@ -55,18 +62,18 @@ class _StudentEnrollmentsScreenState extends State<StudentEnrollmentsScreen> {
       // Obtener las inscripciones del estudiante
       await _loadEnrollments();
     } catch (e) {
-      if (mounted) {
+      if (!_isDisposed && mounted) {
         _showErrorMessage('Error al cargar datos: $e');
       }
     } finally {
-      if (mounted) {
+      if (!_isDisposed && mounted) {
         setState(() => _isLoading = false);
       }
     }
   }
 
   Future<void> _loadEnrollments() async {
-    if (_currentUser == null || !mounted) return;
+    if (_currentUser == null || _isDisposed || !mounted) return;
 
     try {
       // Debug: Imprimir información del usuario actual
@@ -134,17 +141,17 @@ class _StudentEnrollmentsScreenState extends State<StudentEnrollmentsScreen> {
       print(
           '🎓 DEBUG StudentEnrollmentsScreen: Inscripciones obtenidas para usuario $userId: ${enrollments.length}');
 
-      if (!mounted) return;
+      if (_isDisposed || !mounted) return;
       setState(() {
         _enrollments = enrollments;
       });
 
-      if (!mounted) return;
+      if (_isDisposed || !mounted) return;
       if (enrollments.isEmpty) {
         _showInfoMessage('No estás inscrito en ninguna materia');
       }
     } catch (e) {
-      if (mounted) {
+      if (!_isDisposed && mounted) {
         _showErrorMessage('Error al cargar inscripciones: $e');
       }
     }
@@ -165,7 +172,7 @@ class _StudentEnrollmentsScreenState extends State<StudentEnrollmentsScreen> {
   }
 
   void _showErrorMessage(String message) {
-    if (mounted) {
+    if (!_isDisposed && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(message),
@@ -176,7 +183,7 @@ class _StudentEnrollmentsScreenState extends State<StudentEnrollmentsScreen> {
   }
 
   void _showInfoMessage(String message) {
-    if (mounted) {
+    if (!_isDisposed && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(message),
@@ -257,9 +264,11 @@ class _StudentEnrollmentsScreenState extends State<StudentEnrollmentsScreen> {
                 fillColor: Colors.white,
               ),
               onChanged: (value) {
-                setState(() {
-                  _searchQuery = value;
-                });
+                if (mounted) {
+                  setState(() {
+                    _searchQuery = value;
+                  });
+                }
               },
             ),
           ),
