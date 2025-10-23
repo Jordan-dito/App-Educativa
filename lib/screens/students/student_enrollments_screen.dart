@@ -27,12 +27,14 @@ class _StudentEnrollmentsScreenState extends State<StudentEnrollmentsScreen> {
   }
 
   Future<void> _loadUserAndEnrollments() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
 
     try {
       // Obtener el usuario actual
       final user = await UserService.getCurrentUser();
 
+      if (!mounted) return;
       if (user == null) {
         _showErrorMessage('No se pudo obtener la información del usuario');
         return;
@@ -45,6 +47,7 @@ class _StudentEnrollmentsScreenState extends State<StudentEnrollmentsScreen> {
         return;
       }
 
+      if (!mounted) return;
       setState(() {
         _currentUser = user;
       });
@@ -52,14 +55,18 @@ class _StudentEnrollmentsScreenState extends State<StudentEnrollmentsScreen> {
       // Obtener las inscripciones del estudiante
       await _loadEnrollments();
     } catch (e) {
-      _showErrorMessage('Error al cargar datos: $e');
+      if (mounted) {
+        _showErrorMessage('Error al cargar datos: $e');
+      }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
   Future<void> _loadEnrollments() async {
-    if (_currentUser == null) return;
+    if (_currentUser == null || !mounted) return;
 
     try {
       // Debug: Imprimir información del usuario actual
@@ -127,15 +134,19 @@ class _StudentEnrollmentsScreenState extends State<StudentEnrollmentsScreen> {
       print(
           '🎓 DEBUG StudentEnrollmentsScreen: Inscripciones obtenidas para usuario $userId: ${enrollments.length}');
 
+      if (!mounted) return;
       setState(() {
         _enrollments = enrollments;
       });
 
+      if (!mounted) return;
       if (enrollments.isEmpty) {
         _showInfoMessage('No estás inscrito en ninguna materia');
       }
     } catch (e) {
-      _showErrorMessage('Error al cargar inscripciones: $e');
+      if (mounted) {
+        _showErrorMessage('Error al cargar inscripciones: $e');
+      }
     }
   }
 
@@ -154,22 +165,26 @@ class _StudentEnrollmentsScreenState extends State<StudentEnrollmentsScreen> {
   }
 
   void _showErrorMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-      ),
-    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   void _showInfoMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.blue,
-        duration: const Duration(seconds: 3),
-      ),
-    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.blue,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
   @override
