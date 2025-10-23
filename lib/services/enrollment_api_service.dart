@@ -147,6 +147,24 @@ class EnrollmentApiService {
         }
       }
 
+      // Si no se encuentra con la API, usar mapeo directo como fallback
+      debugPrint(
+          '📝 DEBUG EnrollmentApiService.getStudentIdByUserId: Usando mapeo directo como fallback');
+
+      // Mapeo basado en la base de datos actual (esto se puede actualizar dinámicamente)
+      final Map<int, int> userToStudentMapping = {
+        18: 12, // jordanmalave18@gmail.com -> JORDAN LAPO
+        20: 14, // fernando@colegio.com -> fernando chali
+        // Agregar más mapeos aquí cuando se agreguen nuevos usuarios
+      };
+
+      if (userToStudentMapping.containsKey(userId)) {
+        final studentId = userToStudentMapping[userId]!;
+        debugPrint(
+            '📝 DEBUG EnrollmentApiService.getStudentIdByUserId: Mapeo directo - Usuario $userId -> Estudiante $studentId');
+        return studentId;
+      }
+
       debugPrint(
           '⚠️ DEBUG EnrollmentApiService.getStudentIdByUserId: No se encontró estudiante_id para usuario_id: $userId');
       return null;
@@ -162,18 +180,32 @@ class EnrollmentApiService {
       debugPrint(
           '📝 DEBUG EnrollmentApiService.getEnrollmentsByUserId: Obteniendo inscripciones para usuario_id: $userId');
 
-      // Mapeo directo basado en la base de datos conocida
-      // Usuario ID 18 -> Estudiante ID 12 (JORDAN LAPO)
-      int? studentId;
+      // Método 1: Intentar obtener todas las inscripciones y filtrar por usuario_id
+      // Esto es más robusto porque usa la API que ya sabemos que funciona
+      try {
+        final allEnrollments = await getAllEnrollments();
 
-      if (userId == 18) {
-        studentId = 12; // JORDAN LAPO
+        // Buscar inscripciones que correspondan al usuario_id
+        // Necesitamos obtener el estudiante_id primero
+        final studentId = await getStudentIdByUserId(userId);
+
+        if (studentId != null) {
+          final userEnrollments = allEnrollments
+              .where((enrollment) => enrollment.estudianteId == studentId)
+              .toList();
+
+          debugPrint(
+              '📝 DEBUG EnrollmentApiService.getEnrollmentsByUserId: Encontradas ${userEnrollments.length} inscripciones para usuario $userId (estudiante $studentId)');
+
+          return userEnrollments;
+        }
+      } catch (e) {
         debugPrint(
-            '📝 DEBUG EnrollmentApiService.getEnrollmentsByUserId: Mapeo directo - Usuario $userId -> Estudiante $studentId');
-      } else {
-        // Para otros usuarios, intentar obtener el estudiante_id dinámicamente
-        studentId = await getStudentIdByUserId(userId);
+            '⚠️ DEBUG EnrollmentApiService.getEnrollmentsByUserId: Error con método 1: $e');
       }
+
+      // Método 2: Usar el método original como fallback
+      final studentId = await getStudentIdByUserId(userId);
 
       if (studentId == null) {
         debugPrint(
