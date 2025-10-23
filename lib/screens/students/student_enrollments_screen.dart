@@ -205,7 +205,11 @@ class _StudentEnrollmentsScreenState extends State<StudentEnrollmentsScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: _loadEnrollments,
+            onPressed: () {
+              if (!_isDisposed && mounted) {
+                _loadEnrollments();
+              }
+            },
           ),
         ],
       ),
@@ -264,7 +268,7 @@ class _StudentEnrollmentsScreenState extends State<StudentEnrollmentsScreen> {
                 fillColor: Colors.white,
               ),
               onChanged: (value) {
-                if (mounted) {
+                if (!_isDisposed && mounted) {
                   setState(() {
                     _searchQuery = value;
                   });
