@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../models/enrollment_model.dart';
 import '../../services/enrollment_api_service.dart';
@@ -20,6 +21,7 @@ class _StudentEnrollmentsScreenState extends State<StudentEnrollmentsScreen> {
   User? _currentUser;
   String _searchQuery = '';
   bool _isDisposed = false;
+  Completer<void>? _loadingCompleter;
 
   @override
   void initState() {
@@ -30,18 +32,24 @@ class _StudentEnrollmentsScreenState extends State<StudentEnrollmentsScreen> {
   @override
   void dispose() {
     _isDisposed = true;
+    if (_loadingCompleter != null && !_loadingCompleter!.isCompleted) {
+      _loadingCompleter!.complete();
+    }
     super.dispose();
   }
 
   Future<void> _loadUserAndEnrollments() async {
     if (_isDisposed || !mounted) return;
+
+    _loadingCompleter = Completer<void>();
     setState(() => _isLoading = true);
 
     try {
       // Obtener el usuario actual
       final user = await UserService.getCurrentUser();
 
-      if (_isDisposed || !mounted) return;
+      if (_isDisposed || !mounted || _loadingCompleter?.isCompleted == true)
+        return;
       if (user == null) {
         _showErrorMessage('No se pudo obtener la información del usuario');
         return;
@@ -54,7 +62,8 @@ class _StudentEnrollmentsScreenState extends State<StudentEnrollmentsScreen> {
         return;
       }
 
-      if (_isDisposed || !mounted) return;
+      if (_isDisposed || !mounted || _loadingCompleter?.isCompleted == true)
+        return;
       setState(() {
         _currentUser = user;
       });
@@ -62,12 +71,15 @@ class _StudentEnrollmentsScreenState extends State<StudentEnrollmentsScreen> {
       // Obtener las inscripciones del estudiante
       await _loadEnrollments();
     } catch (e) {
-      if (!_isDisposed && mounted) {
+      if (!_isDisposed && mounted && _loadingCompleter?.isCompleted != true) {
         _showErrorMessage('Error al cargar datos: $e');
       }
     } finally {
-      if (!_isDisposed && mounted) {
+      if (!_isDisposed && mounted && _loadingCompleter?.isCompleted != true) {
         setState(() => _isLoading = false);
+      }
+      if (_loadingCompleter != null && !_loadingCompleter!.isCompleted) {
+        _loadingCompleter!.complete();
       }
     }
   }
