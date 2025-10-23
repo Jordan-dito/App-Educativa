@@ -121,7 +121,7 @@ class EnrollmentApiService {
           '📝 DEBUG EnrollmentApiService.getStudentIdByUserId: Obteniendo estudiante_id para usuario_id: $userId');
 
       final response = await http.get(
-        Uri.parse('$baseUrl/estudiantes.php?action=all'),
+        Uri.parse('$baseUrl/auth.php?action=students'),
         headers: _headers,
       );
 
@@ -156,7 +156,7 @@ class EnrollmentApiService {
         // Intentar con endpoint específico para obtener estudiante por usuario_id
         final altResponse = await http.get(
           Uri.parse(
-              '$baseUrl/estudiantes.php?action=by-usuario&usuario_id=$userId'),
+              '$baseUrl/auth.php?action=student&usuario_id=$userId'),
           headers: _headers,
         );
 
