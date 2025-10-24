@@ -13,7 +13,7 @@ class SubjectsScreen extends StatefulWidget {
 class _SubjectsScreenState extends State<SubjectsScreen> {
   final SubjectApiService _subjectApiService = SubjectApiService();
   final TextEditingController _searchController = TextEditingController();
-  
+
   List<Subject> _subjects = [];
   List<Subject> _filteredSubjects = [];
   bool _isLoading = true;
@@ -21,7 +21,20 @@ class _SubjectsScreenState extends State<SubjectsScreen> {
   String _selectedGrade = 'Todos';
 
   final List<String> _sections = ['Todos', 'A', 'B', 'C', 'D'];
-  final List<String> _grades = ['Todos', '1°', '2°', '3°', '4°', '5°', '6°', '7°', '8°', '9°', '10°', '11°'];
+  final List<String> _grades = [
+    'Todos',
+    '1°',
+    '2°',
+    '3°',
+    '4°',
+    '5°',
+    '6°',
+    '7°',
+    '8°',
+    '9°',
+    '10°',
+    '11°'
+  ];
 
   @override
   void initState() {
@@ -38,19 +51,21 @@ class _SubjectsScreenState extends State<SubjectsScreen> {
 
   Future<void> _loadSubjects() async {
     setState(() => _isLoading = true);
-    
+
     try {
-      debugPrint('📚 DEBUG SubjectsScreen._loadSubjects: Cargando materias desde API...');
-      
+      debugPrint(
+          '📚 DEBUG SubjectsScreen._loadSubjects: Cargando materias desde API...');
+
       final subjects = await _subjectApiService.getAllSubjects();
-      
+
       setState(() {
         _subjects = subjects;
         _filteredSubjects = subjects;
         _isLoading = false;
       });
-      
-      debugPrint('📚 DEBUG SubjectsScreen._loadSubjects: ${subjects.length} materias cargadas');
+
+      debugPrint(
+          '📚 DEBUG SubjectsScreen._loadSubjects: ${subjects.length} materias cargadas');
     } catch (e) {
       setState(() => _isLoading = false);
       debugPrint('❌ ERROR SubjectsScreen._loadSubjects: $e');
@@ -60,7 +75,7 @@ class _SubjectsScreenState extends State<SubjectsScreen> {
 
   void _filterSubjects() {
     final query = _searchController.text.toLowerCase();
-    
+
     setState(() {
       _filteredSubjects = _subjects.where((subject) {
         final matchesSearch = query.isEmpty ||
@@ -68,18 +83,17 @@ class _SubjectsScreenState extends State<SubjectsScreen> {
             subject.grade.toLowerCase().contains(query) ||
             subject.section.toLowerCase().contains(query) ||
             subject.academicYear.toLowerCase().contains(query);
-        
-        final matchesSection = _selectedSection == 'Todos' ||
-            subject.section == _selectedSection;
-        
-        final matchesGrade = _selectedGrade == 'Todos' ||
-            subject.grade == _selectedGrade;
-        
+
+        final matchesSection =
+            _selectedSection == 'Todos' || subject.section == _selectedSection;
+
+        final matchesGrade =
+            _selectedGrade == 'Todos' || subject.grade == _selectedGrade;
+
         return matchesSearch && matchesSection && matchesGrade;
       }).toList();
     });
   }
-
 
   Future<void> _navigateToAddSubject() async {
     final result = await Navigator.push(
@@ -88,7 +102,7 @@ class _SubjectsScreenState extends State<SubjectsScreen> {
         builder: (context) => const AddEditSubjectScreen(),
       ),
     );
-    
+
     if (result == true) {
       _loadSubjects();
     }
@@ -101,7 +115,7 @@ class _SubjectsScreenState extends State<SubjectsScreen> {
         builder: (context) => AddEditSubjectScreen(subject: subject),
       ),
     );
-    
+
     if (result == true) {
       _loadSubjects();
     }
@@ -112,7 +126,8 @@ class _SubjectsScreenState extends State<SubjectsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Confirmar eliminación'),
-        content: Text('¿Está seguro de que desea eliminar la materia "${subject.name}"?'),
+        content: Text(
+            '¿Está seguro de que desea eliminar la materia "${subject.name}"?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -228,15 +243,18 @@ class _SubjectsScreenState extends State<SubjectsScreen> {
                       _buildDetailItem('Grado', subject.grade),
                       _buildDetailItem('Sección', subject.section),
                       _buildDetailItem('Año Académico', subject.academicYear),
-                      _buildDetailItem('Estado', subject.isActive ? 'Activa' : 'Inactiva'),
+                      _buildDetailItem(
+                          'Estado', subject.isActive ? 'Activa' : 'Inactiva'),
                     ]),
                     const SizedBox(height: 24),
                     _buildDetailSection('Profesor Asignado', [
-                      _buildDetailItem('Nombre', subject.teacherName ?? 'Sin asignar'),
+                      _buildDetailItem(
+                          'Nombre', subject.teacherName ?? 'Sin asignar'),
                     ]),
                     const SizedBox(height: 24),
                     _buildDetailSection('Información del Sistema', [
-                      _buildDetailItem('Creada', _formatDate(subject.createdAt)),
+                      _buildDetailItem(
+                          'Creada', _formatDate(subject.createdAt)),
                     ]),
                   ],
                 ),
@@ -278,7 +296,6 @@ class _SubjectsScreenState extends State<SubjectsScreen> {
       ),
     );
   }
-
 
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year}';
@@ -366,7 +383,9 @@ class _SubjectsScreenState extends State<SubjectsScreen> {
           ),
 
           // Indicadores de filtros activos
-          if (_searchController.text.isNotEmpty || _selectedGrade != 'Todos' || _selectedSection != 'Todos')
+          if (_searchController.text.isNotEmpty ||
+              _selectedGrade != 'Todos' ||
+              _selectedSection != 'Todos')
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Wrap(
@@ -415,7 +434,7 @@ class _SubjectsScreenState extends State<SubjectsScreen> {
                 ],
               ),
             ),
-          
+
           // Lista de materias
           Expanded(
             child: _isLoading
@@ -425,7 +444,8 @@ class _SubjectsScreenState extends State<SubjectsScreen> {
                     : RefreshIndicator(
                         onRefresh: _loadSubjects,
                         child: ListView.builder(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 8),
                           itemCount: _filteredSubjects.length,
                           itemBuilder: (context, index) {
                             final subject = _filteredSubjects[index];
@@ -435,6 +455,13 @@ class _SubjectsScreenState extends State<SubjectsScreen> {
                       ),
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _navigateToAddSubject,
+        backgroundColor: Colors.purple[600],
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.add),
+        label: const Text('Agregar Materia'),
       ),
     );
   }
@@ -460,7 +487,9 @@ class _SubjectsScreenState extends State<SubjectsScreen> {
             ),
             const SizedBox(height: 24),
             Text(
-              _searchController.text.isNotEmpty || _selectedGrade != 'Todos' || _selectedSection != 'Todos'
+              _searchController.text.isNotEmpty ||
+                      _selectedGrade != 'Todos' ||
+                      _selectedSection != 'Todos'
                   ? 'No se encontraron materias'
                   : 'No hay materias registradas',
               style: TextStyle(
@@ -481,7 +510,9 @@ class _SubjectsScreenState extends State<SubjectsScreen> {
               ),
               textAlign: TextAlign.center,
             ),
-            if (_searchController.text.isEmpty && _selectedGrade == 'Todos' && _selectedSection == 'Todos') ...[
+            if (_searchController.text.isEmpty &&
+                _selectedGrade == 'Todos' &&
+                _selectedSection == 'Todos') ...[
               const SizedBox(height: 24),
               ElevatedButton.icon(
                 onPressed: _navigateToAddSubject,
@@ -490,7 +521,8 @@ class _SubjectsScreenState extends State<SubjectsScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.purple[600],
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 ),
               ),
             ],
@@ -597,7 +629,8 @@ class _SubjectsScreenState extends State<SubjectsScreen> {
                       if (subject.teacherName != null)
                         Row(
                           children: [
-                            Icon(Icons.person, size: 16, color: Colors.grey[600]),
+                            Icon(Icons.person,
+                                size: 16, color: Colors.grey[600]),
                             const SizedBox(width: 4),
                             Expanded(
                               child: Text(
@@ -615,15 +648,21 @@ class _SubjectsScreenState extends State<SubjectsScreen> {
                       Row(
                         children: [
                           Icon(
-                            subject.isActive ? Icons.check_circle : Icons.cancel,
+                            subject.isActive
+                                ? Icons.check_circle
+                                : Icons.cancel,
                             size: 16,
-                            color: subject.isActive ? Colors.green[600] : Colors.red[600],
+                            color: subject.isActive
+                                ? Colors.green[600]
+                                : Colors.red[600],
                           ),
                           const SizedBox(width: 4),
                           Text(
                             subject.isActive ? 'Activa' : 'Inactiva',
                             style: TextStyle(
-                              color: subject.isActive ? Colors.green[600] : Colors.red[600],
+                              color: subject.isActive
+                                  ? Colors.green[600]
+                                  : Colors.red[600],
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
                             ),
@@ -785,8 +824,11 @@ class _SubjectsScreenState extends State<SubjectsScreen> {
                         selectedColor: Colors.purple[100],
                         checkmarkColor: Colors.purple[700],
                         labelStyle: TextStyle(
-                          color: isSelected ? Colors.purple[700] : Colors.grey[700],
-                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                          color: isSelected
+                              ? Colors.purple[700]
+                              : Colors.grey[700],
+                          fontWeight:
+                              isSelected ? FontWeight.w600 : FontWeight.normal,
                         ),
                       );
                     }).toList(),
@@ -829,8 +871,11 @@ class _SubjectsScreenState extends State<SubjectsScreen> {
                         selectedColor: Colors.purple[100],
                         checkmarkColor: Colors.purple[700],
                         labelStyle: TextStyle(
-                          color: isSelected ? Colors.purple[700] : Colors.grey[700],
-                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                          color: isSelected
+                              ? Colors.purple[700]
+                              : Colors.grey[700],
+                          fontWeight:
+                              isSelected ? FontWeight.w600 : FontWeight.normal,
                         ),
                       );
                     }).toList(),
