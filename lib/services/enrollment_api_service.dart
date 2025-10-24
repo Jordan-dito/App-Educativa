@@ -155,8 +155,7 @@ class EnrollmentApiService {
       try {
         // Intentar con endpoint específico para obtener estudiante por usuario_id
         final altResponse = await http.get(
-          Uri.parse(
-              '$baseUrl/auth.php?action=student&usuario_id=$userId'),
+          Uri.parse('$baseUrl/auth.php?action=student&usuario_id=$userId'),
           headers: _headers,
         );
 
