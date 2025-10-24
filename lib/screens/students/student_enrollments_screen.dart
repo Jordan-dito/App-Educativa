@@ -4,6 +4,7 @@ import '../../models/enrollment_model.dart';
 import '../../services/enrollment_api_service.dart';
 import '../../services/user_service.dart';
 import '../../models/user.dart';
+import '../enrollments/add_enrollment_screen.dart';
 
 class StudentEnrollmentsScreen extends StatefulWidget {
   const StudentEnrollmentsScreen({Key? key}) : super(key: key);
@@ -382,6 +383,22 @@ class _StudentEnrollmentsScreenState extends State<StudentEnrollmentsScreen> {
                       ),
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          // Navegar a la pantalla de agregar inscripción
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const AddEnrollmentScreen(),
+            ),
+          );
+          if (result == true) {
+            _loadUserAndEnrollments();
+          }
+        },
+        backgroundColor: Colors.indigo,
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }
