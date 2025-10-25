@@ -74,7 +74,16 @@ class _EnrollmentsScreenState extends State<EnrollmentsScreen> {
   }
 
   List<Enrollment> get _filteredEnrollments {
-    return _enrollments.where((enrollment) {
+    // Debug: Mostrar información sobre las inscripciones
+    debugPrint('🔍 DEBUG _filteredEnrollments:');
+    debugPrint('  - Total inscripciones: ${_enrollments.length}');
+    debugPrint('  - Filtro seleccionado: $_selectedStatus');
+    
+    for (var enrollment in _enrollments) {
+      debugPrint('  - Inscripción ${enrollment.id}: ${enrollment.estudianteNombre} - Estado: "${enrollment.estado}"');
+    }
+
+    final filtered = _enrollments.where((enrollment) {
       final matchesSearch = _searchQuery.isEmpty ||
           enrollment.estudianteNombre
               .toLowerCase()
@@ -94,8 +103,27 @@ class _EnrollmentsScreenState extends State<EnrollmentsScreen> {
           (_selectedStatus == 'Activos' && enrollment.estado == 'activo') ||
           (_selectedStatus == 'Inactivos' && enrollment.estado == 'inactivo');
 
-      return matchesSearch && matchesGrade && matchesSubject && matchesStatus;
+      final result = matchesSearch && matchesGrade && matchesSubject && matchesStatus;
+      
+      if (result) {
+        debugPrint('  ✅ Incluida: ${enrollment.estudianteNombre} (${enrollment.estado})');
+      }
+
+      return result;
     }).toList();
+
+    debugPrint('  - Resultado filtrado: ${filtered.length} inscripciones');
+    return filtered;
+  }
+
+  // Contar inscripciones activas
+  int _getActiveCount() {
+    return _enrollments.where((enrollment) => enrollment.estado == 'activo').length;
+  }
+
+  // Contar inscripciones inactivas
+  int _getInactiveCount() {
+    return _enrollments.where((enrollment) => enrollment.estado == 'inactivo').length;
   }
 
   void _showErrorMessage(String message) {
@@ -278,18 +306,18 @@ class _EnrollmentsScreenState extends State<EnrollmentsScreen> {
                           fillColor: Colors.white,
                           prefixIcon: const Icon(Icons.filter_list),
                         ),
-                        items: const [
+                        items: [
                           DropdownMenuItem(
                             value: 'Activos',
-                            child: Text('Solo Activos'),
+                            child: Text('Solo Activos (${_getActiveCount()})'),
                           ),
                           DropdownMenuItem(
                             value: 'Inactivos',
-                            child: Text('Solo Inactivos'),
+                            child: Text('Solo Inactivos (${_getInactiveCount()})'),
                           ),
                           DropdownMenuItem(
                             value: 'Todos',
-                            child: Text('Todos los Estados'),
+                            child: Text('Todos los Estados (${_enrollments.length})'),
                           ),
                         ],
                         onChanged: (value) {
