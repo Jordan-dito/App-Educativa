@@ -114,80 +114,6 @@ class EnrollmentApiService {
     }
   }
 
-  // Obtener el estudiante_id a partir del usuario_id
-  Future<int?> getStudentIdByUserId(int userId) async {
-    try {
-      debugPrint(
-          '📝 DEBUG EnrollmentApiService.getStudentIdByUserId: Obteniendo estudiante_id para usuario_id: $userId');
-
-      final response = await http.get(
-        Uri.parse('$baseUrl/auth.php?action=students'),
-        headers: _headers,
-      );
-
-      debugPrint(
-          '📝 DEBUG EnrollmentApiService.getStudentIdByUserId: Status Code: ${response.statusCode}');
-      debugPrint(
-          '📝 DEBUG EnrollmentApiService.getStudentIdByUserId: Response Body: ${response.body}');
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final Map<String, dynamic> jsonResponse = json.decode(response.body);
-
-        if (jsonResponse['success'] == true) {
-          final List<dynamic> studentsData = jsonResponse['data'] ?? [];
-
-          // Buscar el estudiante que tenga el usuario_id correspondiente
-          for (var studentData in studentsData) {
-            if (studentData['usuario_id'] == userId) {
-              final studentId = int.tryParse(studentData['id'].toString());
-              debugPrint(
-                  '📝 DEBUG EnrollmentApiService.getStudentIdByUserId: Estudiante_id encontrado: $studentId para usuario_id: $userId');
-              return studentId;
-            }
-          }
-        }
-      }
-
-      // Si no se encuentra con la API, intentar con endpoint alternativo
-      debugPrint(
-          '📝 DEBUG EnrollmentApiService.getStudentIdByUserId: Intentando endpoint alternativo');
-
-      try {
-        // Intentar con endpoint específico para obtener estudiante por usuario_id
-        final altResponse = await http.get(
-          Uri.parse('$baseUrl/auth.php?action=student&usuario_id=$userId'),
-          headers: _headers,
-        );
-
-        if (altResponse.statusCode == 200 || altResponse.statusCode == 201) {
-          final Map<String, dynamic> altJsonResponse =
-              json.decode(altResponse.body);
-
-          if (altJsonResponse['success'] == true &&
-              altJsonResponse['data'] != null) {
-            final studentId =
-                int.tryParse(altJsonResponse['data']['id'].toString());
-            if (studentId != null) {
-              debugPrint(
-                  '📝 DEBUG EnrollmentApiService.getStudentIdByUserId: Estudiante_id encontrado con endpoint alternativo: $studentId');
-              return studentId;
-            }
-          }
-        }
-      } catch (e) {
-        debugPrint(
-            '⚠️ DEBUG EnrollmentApiService.getStudentIdByUserId: Error con endpoint alternativo: $e');
-      }
-
-      debugPrint(
-          '⚠️ DEBUG EnrollmentApiService.getStudentIdByUserId: No se encontró estudiante_id para usuario_id: $userId');
-      return null;
-    } catch (e) {
-      debugPrint('❌ ERROR EnrollmentApiService.getStudentIdByUserId: $e');
-      return null;
-    }
-  }
-
   // Obtener inscripciones por usuario_id (método principal para estudiantes)
   Future<List<Enrollment>> getEnrollmentsByUserId(int userId) async {
     try {
@@ -213,7 +139,7 @@ class EnrollmentApiService {
           // Buscar inscripciones que coincidan con el nombre del usuario
           final userEnrollments = allEnrollments.where((enrollment) {
             final enrollmentStudentName =
-                '${enrollment.estudianteNombre}'.trim().toLowerCase();
+                enrollment.estudianteNombre.trim().toLowerCase();
             final matches = enrollmentStudentName.contains(userFullName) ||
                 userFullName.contains(enrollmentStudentName);
 
@@ -495,6 +421,127 @@ class EnrollmentApiService {
     } catch (e) {
       debugPrint('❌ ERROR EnrollmentApiService.updateEnrollment: $e');
       throw Exception('Error al actualizar inscripción: $e');
+    }
+  }
+
+  // Obtener datos del estudiante por usuario_id
+  Future<Map<String, dynamic>?> getStudentDataByUserId(int userId) async {
+    try {
+      debugPrint(
+          '🎓 DEBUG EnrollmentApiService.getStudentDataByUserId: Obteniendo datos del estudiante para usuario: $userId');
+
+      // Usar el endpoint de inscripciones para obtener datos del estudiante
+      final response = await http.get(
+        Uri.parse(
+            '$enrollmentsEndpoint?action=get-student-info&usuario_id=$userId'),
+        headers: _headers,
+      );
+
+      debugPrint(
+          '🎓 DEBUG EnrollmentApiService.getStudentDataByUserId: Status Code: ${response.statusCode}');
+      debugPrint(
+          '🎓 DEBUG EnrollmentApiService.getStudentDataByUserId: Response Body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final Map<String, dynamic> jsonResponse = json.decode(response.body);
+
+        if (jsonResponse['success'] == true && jsonResponse['data'] != null) {
+          debugPrint(
+              '✅ DEBUG EnrollmentApiService.getStudentDataByUserId: Datos del estudiante obtenidos exitosamente');
+          return jsonResponse['data'] as Map<String, dynamic>;
+        } else {
+          debugPrint(
+              '⚠️ DEBUG EnrollmentApiService.getStudentDataByUserId: No se encontraron datos del estudiante');
+          return null;
+        }
+      } else {
+        throw Exception('Error HTTP: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('❌ ERROR EnrollmentApiService.getStudentDataByUserId: $e');
+      return null;
+    }
+  }
+
+  // Inscribir estudiante en materia (endpoint específico para estudiantes)
+  Future<bool> enrollStudentInSubject(
+      Map<String, dynamic> enrollmentData) async {
+    try {
+      debugPrint(
+          '🎓 DEBUG EnrollmentApiService.enrollStudentInSubject: Inscribiendo estudiante en materia...');
+
+      final response = await http.post(
+        Uri.parse('$enrollmentsEndpoint?action=student-enroll'),
+        headers: _headers,
+        body: json.encode(enrollmentData),
+      );
+
+      debugPrint(
+          '🎓 DEBUG EnrollmentApiService.enrollStudentInSubject: Status Code: ${response.statusCode}');
+      debugPrint(
+          '🎓 DEBUG EnrollmentApiService.enrollStudentInSubject: Response Body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final Map<String, dynamic> jsonResponse = json.decode(response.body);
+
+        if (jsonResponse['success'] == true) {
+          debugPrint(
+              '✅ DEBUG EnrollmentApiService.enrollStudentInSubject: Estudiante inscrito exitosamente');
+          return true;
+        } else {
+          debugPrint(
+              '⚠️ DEBUG EnrollmentApiService.enrollStudentInSubject: ${jsonResponse['message']}');
+          return false;
+        }
+      } else {
+        throw Exception('Error HTTP: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('❌ ERROR EnrollmentApiService.enrollStudentInSubject: $e');
+      return false;
+    }
+  }
+
+  // Obtener estudiante_id por usuario_id (método dinámico)
+  Future<int?> getStudentIdByUserId(int userId) async {
+    try {
+      debugPrint(
+          '🎓 DEBUG EnrollmentApiService.getStudentIdByUserId: Obteniendo estudiante_id para usuario: $userId');
+
+      // Obtener todas las inscripciones y buscar el estudiante_id por nombre de usuario
+      final allEnrollments = await getAllEnrollments();
+
+      // Obtener información del usuario actual
+      final currentUser = await UserService.getCurrentUser();
+      if (currentUser != null) {
+        final userFullName = '${currentUser.nombre} ${currentUser.apellido}'
+            .trim()
+            .toLowerCase();
+
+        debugPrint(
+            '🎓 DEBUG EnrollmentApiService.getStudentIdByUserId: Buscando estudiante_id para: $userFullName');
+
+        // Buscar la primera inscripción que coincida con el nombre del usuario
+        for (var enrollment in allEnrollments) {
+          final enrollmentStudentName =
+              enrollment.estudianteNombre.trim().toLowerCase();
+
+          if (enrollmentStudentName.contains(userFullName) ||
+              userFullName.contains(enrollmentStudentName)) {
+            final studentId = enrollment.estudianteId;
+            debugPrint(
+                '✅ DEBUG EnrollmentApiService.getStudentIdByUserId: Estudiante_id encontrado: $studentId para usuario: $userFullName');
+            return studentId;
+          }
+        }
+      }
+
+      debugPrint(
+          '⚠️ DEBUG EnrollmentApiService.getStudentIdByUserId: No se encontró estudiante_id para usuario: $userId');
+      return null;
+    } catch (e) {
+      debugPrint('❌ ERROR EnrollmentApiService.getStudentIdByUserId: $e');
+      return null;
     }
   }
 }
