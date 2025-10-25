@@ -50,15 +50,20 @@ class _EnrollmentsScreenState extends State<EnrollmentsScreen> {
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
     try {
-      // Cargar materias e inscripciones en paralelo
+      // Cargar materias, inscripciones activas e inactivas en paralelo
       final results = await Future.wait([
         _subjectService.getAllSubjects(),
         _enrollmentService.getAllEnrollments(),
+        _enrollmentService.getInactiveEnrollments(),
       ]);
 
       setState(() {
         _subjects = results[0] as List<Subject>;
-        _enrollments = results[1] as List<Enrollment>;
+        final activeEnrollments = results[1] as List<Enrollment>;
+        final inactiveEnrollments = results[2] as List<Enrollment>;
+        
+        // Combinar inscripciones activas e inactivas
+        _enrollments = [...activeEnrollments, ...inactiveEnrollments];
         _isLoading = false;
       });
 
@@ -198,6 +203,66 @@ class _EnrollmentsScreenState extends State<EnrollmentsScreen> {
         }
       } catch (e) {
         _showErrorMessage('Error al eliminar la inscripción: $e');
+      }
+    }
+  }
+
+  Future<void> _restoreEnrollment(int enrollmentId) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirmar restauración'),
+        content:
+            const Text('¿Está seguro que desea restaurar esta inscripción?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            child:
+                const Text('Restaurar', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        final success = await _enrollmentService.updateEnrollmentFields(
+          enrollmentId,
+          estado: 'activo',
+        );
+        if (success) {
+          // Cambiar el estado local a activo
+          setState(() {
+            final enrollmentIndex = _enrollments.indexWhere((e) => e.id == enrollmentId);
+            if (enrollmentIndex != -1) {
+              // Crear una copia con estado activo
+              final updatedEnrollment = Enrollment(
+                id: _enrollments[enrollmentIndex].id,
+                estudianteId: _enrollments[enrollmentIndex].estudianteId,
+                estudianteNombre: _enrollments[enrollmentIndex].estudianteNombre,
+                estudianteGrado: _enrollments[enrollmentIndex].estudianteGrado,
+                estudianteSeccion: _enrollments[enrollmentIndex].estudianteSeccion,
+                materiaId: _enrollments[enrollmentIndex].materiaId,
+                materiaNombre: _enrollments[enrollmentIndex].materiaNombre,
+                fechaInscripcion: _enrollments[enrollmentIndex].fechaInscripcion,
+                estado: 'activo', // Cambiar estado a activo
+                profesorId: _enrollments[enrollmentIndex].profesorId,
+                profesorNombre: _enrollments[enrollmentIndex].profesorNombre,
+              );
+              _enrollments[enrollmentIndex] = updatedEnrollment;
+            }
+          });
+          _showSuccessMessage('Inscripción restaurada exitosamente');
+        } else {
+          _showErrorMessage('Error al restaurar la inscripción');
+        }
+      } catch (e) {
+        _showErrorMessage('Error al restaurar la inscripción: $e');
       }
     }
   }
@@ -595,12 +660,18 @@ class _EnrollmentsScreenState extends State<EnrollmentsScreen> {
                   label: const Text('Editar'),
                 ),
                 const SizedBox(width: 8),
-                TextButton.icon(
-                  onPressed: () => _deleteEnrollment(enrollment.id),
-                  icon: const Icon(Icons.delete, size: 16, color: Colors.red),
-                  label: const Text('Eliminar',
-                      style: TextStyle(color: Colors.red)),
-                ),
+                if (enrollment.estado == 'activo')
+                  TextButton.icon(
+                    onPressed: () => _deleteEnrollment(enrollment.id),
+                    icon: const Icon(Icons.delete, size: 16, color: Colors.red),
+                    label: const Text('Eliminar', style: TextStyle(color: Colors.red)),
+                  )
+                else
+                  TextButton.icon(
+                    onPressed: () => _restoreEnrollment(enrollment.id),
+                    icon: const Icon(Icons.restore, size: 16, color: Colors.green),
+                    label: const Text('Restaurar', style: TextStyle(color: Colors.green)),
+                  ),
               ],
             ),
           ],

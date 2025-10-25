@@ -14,6 +14,63 @@ class EnrollmentApiService {
         'Accept': 'application/json',
       };
 
+  // Obtener inscripciones inactivas
+  Future<List<Enrollment>> getInactiveEnrollments() async {
+    try {
+      debugPrint(
+          '📝 DEBUG EnrollmentApiService.getInactiveEnrollments: Obteniendo inscripciones inactivas...');
+
+      final response = await http.get(
+        Uri.parse('$enrollmentsEndpoint?action=inactive'),
+        headers: _headers,
+      );
+
+      debugPrint(
+          '📝 DEBUG EnrollmentApiService.getInactiveEnrollments: Status Code: ${response.statusCode}');
+      debugPrint(
+          '📝 DEBUG EnrollmentApiService.getInactiveEnrollments: Response Body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        try {
+          final Map<String, dynamic> jsonResponse = json.decode(response.body);
+
+          if (jsonResponse['success'] == true) {
+            final List<dynamic> enrollmentsData = jsonResponse['data'] ?? [];
+            final List<Enrollment> enrollments = [];
+
+            for (var data in enrollmentsData) {
+              try {
+                final enrollment = Enrollment.fromJson(data);
+                enrollments.add(enrollment);
+              } catch (e) {
+                debugPrint(
+                    '❌ ERROR EnrollmentApiService.getInactiveEnrollments: Error procesando item $data: $e');
+              }
+            }
+
+            debugPrint(
+                '📝 DEBUG EnrollmentApiService.getInactiveEnrollments: ${enrollments.length} inscripciones inactivas cargadas');
+            return enrollments;
+          } else {
+            throw Exception(jsonResponse['message'] ??
+                'Error al obtener inscripciones inactivas');
+          }
+        } catch (e) {
+          if (e is FormatException) {
+            throw Exception(
+                'Error del servidor: Respuesta no válida. El endpoint puede no estar configurado correctamente.');
+          }
+          rethrow;
+        }
+      } else {
+        throw Exception('Error HTTP: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('❌ ERROR EnrollmentApiService.getInactiveEnrollments: $e');
+      return [];
+    }
+  }
+
   // Obtener todas las inscripciones
   Future<List<Enrollment>> getAllEnrollments() async {
     try {
