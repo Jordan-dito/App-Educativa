@@ -24,6 +24,7 @@ class _EnrollmentsScreenState extends State<EnrollmentsScreen> {
   String _selectedGrade = 'Todos';
   String _selectedSubject = 'Todos';
   String _selectedStatus = 'Activos';
+  DateTime? _lastUpdate;
 
   final List<String> _grades = [
     'Todos',
@@ -47,6 +48,17 @@ class _EnrollmentsScreenState extends State<EnrollmentsScreen> {
     _loadData();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Recargar datos cuando se regrese a la pantalla
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (ModalRoute.of(context)?.isCurrent == true) {
+        _loadData();
+      }
+    });
+  }
+
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
     try {
@@ -64,6 +76,7 @@ class _EnrollmentsScreenState extends State<EnrollmentsScreen> {
         
         // Combinar inscripciones activas e inactivas
         _enrollments = [...activeEnrollments, ...inactiveEnrollments];
+        _lastUpdate = DateTime.now();
         _isLoading = false;
       });
 
@@ -129,6 +142,22 @@ class _EnrollmentsScreenState extends State<EnrollmentsScreen> {
   // Contar inscripciones inactivas
   int _getInactiveCount() {
     return _enrollments.where((enrollment) => enrollment.estado == 'inactivo').length;
+  }
+
+  // Formatear fecha de última actualización
+  String _formatLastUpdate(DateTime dateTime) {
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+
+    if (difference.inSeconds < 60) {
+      return 'Hace ${difference.inSeconds}s';
+    } else if (difference.inMinutes < 60) {
+      return 'Hace ${difference.inMinutes}m';
+    } else if (difference.inHours < 24) {
+      return 'Hace ${difference.inHours}h';
+    } else {
+      return '${dateTime.day}/${dateTime.month} ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
+    }
   }
 
   void _showErrorMessage(String message) {
@@ -286,8 +315,18 @@ class _EnrollmentsScreenState extends State<EnrollmentsScreen> {
         elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadData,
+            icon: _isLoading 
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : const Icon(Icons.refresh),
+            onPressed: _isLoading ? null : _loadData,
+            tooltip: 'Actualizar datos',
           ),
         ],
       ),
@@ -427,49 +466,93 @@ class _EnrollmentsScreenState extends State<EnrollmentsScreen> {
                     ),
                   ],
                 ),
+                
+                // Indicador de última actualización
+                if (_lastUpdate != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.sync,
+                          size: 14,
+                          color: Colors.grey[500],
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Última actualización: ${_formatLastUpdate(_lastUpdate!)}',
+                          style: TextStyle(
+                            color: Colors.grey[500],
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
               ],
             ),
           ),
 
-          // Lista de inscripciones
+          // Lista de inscripciones con pull-to-refresh
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _filteredEnrollments.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.school_outlined,
-                              size: 80,
-                              color: Colors.grey[400],
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'No hay inscripciones registradas',
-                              style: TextStyle(
-                                fontSize: 18,
-                                color: Colors.grey[600],
+                    ? RefreshIndicator(
+                        onRefresh: _loadData,
+                        child: SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          child: SizedBox(
+                            height: MediaQuery.of(context).size.height * 0.6,
+                            child: Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.school_outlined,
+                                    size: 80,
+                                    color: Colors.grey[400],
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'No hay inscripciones registradas',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Agrega una nueva inscripción para comenzar',
+                                    style: TextStyle(
+                                      color: Colors.grey[500],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'Desliza hacia abajo para actualizar',
+                                    style: TextStyle(
+                                      color: Colors.grey[400],
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Agrega una nueva inscripción para comenzar',
-                              style: TextStyle(
-                                color: Colors.grey[500],
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
                       )
-                    : ListView.builder(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: _filteredEnrollments.length,
-                        itemBuilder: (context, index) {
-                          final enrollment = _filteredEnrollments[index];
-                          return _buildEnrollmentCard(enrollment);
-                        },
+                    : RefreshIndicator(
+                        onRefresh: _loadData,
+                        child: ListView.builder(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: _filteredEnrollments.length,
+                          itemBuilder: (context, index) {
+                            final enrollment = _filteredEnrollments[index];
+                            return _buildEnrollmentCard(enrollment);
+                          },
+                        ),
                       ),
           ),
         ],
