@@ -171,8 +171,26 @@ class _EnrollmentsScreenState extends State<EnrollmentsScreen> {
       try {
         final success = await _enrollmentService.deleteEnrollment(enrollmentId);
         if (success) {
+          // Cambiar el estado local a inactivo en lugar de eliminar
           setState(() {
-            _enrollments.removeWhere((e) => e.id == enrollmentId);
+            final enrollmentIndex = _enrollments.indexWhere((e) => e.id == enrollmentId);
+            if (enrollmentIndex != -1) {
+              // Crear una copia con estado inactivo
+              final updatedEnrollment = Enrollment(
+                id: _enrollments[enrollmentIndex].id,
+                estudianteId: _enrollments[enrollmentIndex].estudianteId,
+                estudianteNombre: _enrollments[enrollmentIndex].estudianteNombre,
+                estudianteGrado: _enrollments[enrollmentIndex].estudianteGrado,
+                estudianteSeccion: _enrollments[enrollmentIndex].estudianteSeccion,
+                materiaId: _enrollments[enrollmentIndex].materiaId,
+                materiaNombre: _enrollments[enrollmentIndex].materiaNombre,
+                fechaInscripcion: _enrollments[enrollmentIndex].fechaInscripcion,
+                estado: 'inactivo', // Cambiar estado a inactivo
+                profesorId: _enrollments[enrollmentIndex].profesorId,
+                profesorNombre: _enrollments[enrollmentIndex].profesorNombre,
+              );
+              _enrollments[enrollmentIndex] = updatedEnrollment;
+            }
           });
           _showSuccessMessage('Inscripción eliminada exitosamente');
         } else {

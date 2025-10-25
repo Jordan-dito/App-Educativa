@@ -347,35 +347,24 @@ class EnrollmentApiService {
     }
   }
 
-  // Eliminar inscripción
+  // Eliminar inscripción (cambiar estado a inactivo)
   Future<bool> deleteEnrollment(int enrollmentId) async {
     try {
       debugPrint(
-          '📝 DEBUG EnrollmentApiService.deleteEnrollment: Eliminando inscripción: $enrollmentId');
+          '📝 DEBUG EnrollmentApiService.deleteEnrollment: Cambiando estado a inactivo para inscripción: $enrollmentId');
 
-      final response = await http.delete(
-        Uri.parse('$enrollmentsEndpoint?action=delete&id=$enrollmentId'),
-        headers: _headers,
+      // Usar el método updateEnrollmentFields para cambiar solo el estado
+      final success = await updateEnrollmentFields(
+        enrollmentId,
+        estado: 'inactivo',
       );
 
-      debugPrint(
-          '📝 DEBUG EnrollmentApiService.deleteEnrollment: Status Code: ${response.statusCode}');
-      debugPrint(
-          '📝 DEBUG EnrollmentApiService.deleteEnrollment: Response Body: ${response.body}');
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final Map<String, dynamic> jsonResponse = json.decode(response.body);
-
-        if (jsonResponse['success'] == true) {
-          debugPrint(
-              '✅ DEBUG EnrollmentApiService.deleteEnrollment: Inscripción eliminada exitosamente');
-          return true;
-        } else {
-          throw Exception(
-              jsonResponse['message'] ?? 'Error al eliminar inscripción');
-        }
+      if (success) {
+        debugPrint(
+            '✅ DEBUG EnrollmentApiService.deleteEnrollment: Estado cambiado a inactivo exitosamente');
+        return true;
       } else {
-        throw Exception('Error HTTP: ${response.statusCode}');
+        throw Exception('Error al cambiar estado de la inscripción');
       }
     } catch (e) {
       debugPrint('❌ ERROR EnrollmentApiService.deleteEnrollment: $e');
@@ -389,14 +378,21 @@ class EnrollmentApiService {
       debugPrint(
           '📝 DEBUG EnrollmentApiService.updateEnrollment: Actualizando inscripción: ${enrollment.id}');
 
-      final enrollmentData = enrollment.toJson();
+      // Preparar datos para actualización (solo campos que pueden cambiar)
+      final updateData = {
+        'inscripcion_id': enrollment.id,
+        'estudiante_id': enrollment.estudianteId,
+        'materia_id': enrollment.materiaId,
+        'estado': enrollment.estado,
+      };
+
       debugPrint(
-          '📝 DEBUG EnrollmentApiService.updateEnrollment: Datos a enviar: $enrollmentData');
+          '📝 DEBUG EnrollmentApiService.updateEnrollment: Datos a enviar: $updateData');
 
       final response = await http.put(
         Uri.parse('$enrollmentsEndpoint?action=update'),
         headers: _headers,
-        body: json.encode(enrollmentData),
+        body: json.encode(updateData),
       );
 
       debugPrint(
@@ -420,6 +416,60 @@ class EnrollmentApiService {
       }
     } catch (e) {
       debugPrint('❌ ERROR EnrollmentApiService.updateEnrollment: $e');
+      throw Exception('Error al actualizar inscripción: $e');
+    }
+  }
+
+  // Actualizar inscripción con campos específicos (método más flexible)
+  Future<bool> updateEnrollmentFields(
+    int enrollmentId, {
+    int? estudianteId,
+    int? materiaId,
+    String? estado,
+  }) async {
+    try {
+      debugPrint(
+          '📝 DEBUG EnrollmentApiService.updateEnrollmentFields: Actualizando campos específicos de inscripción: $enrollmentId');
+
+      // Preparar datos solo con los campos que se van a actualizar
+      final updateData = <String, dynamic>{
+        'inscripcion_id': enrollmentId,
+      };
+
+      if (estudianteId != null) updateData['estudiante_id'] = estudianteId;
+      if (materiaId != null) updateData['materia_id'] = materiaId;
+      if (estado != null) updateData['estado'] = estado;
+
+      debugPrint(
+          '📝 DEBUG EnrollmentApiService.updateEnrollmentFields: Datos a enviar: $updateData');
+
+      final response = await http.put(
+        Uri.parse('$enrollmentsEndpoint?action=update'),
+        headers: _headers,
+        body: json.encode(updateData),
+      );
+
+      debugPrint(
+          '📝 DEBUG EnrollmentApiService.updateEnrollmentFields: Status Code: ${response.statusCode}');
+      debugPrint(
+          '📝 DEBUG EnrollmentApiService.updateEnrollmentFields: Response Body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final Map<String, dynamic> jsonResponse = json.decode(response.body);
+
+        if (jsonResponse['success'] == true) {
+          debugPrint(
+              '✅ DEBUG EnrollmentApiService.updateEnrollmentFields: Inscripción actualizada exitosamente');
+          return true;
+        } else {
+          throw Exception(
+              jsonResponse['message'] ?? 'Error al actualizar inscripción');
+        }
+      } else {
+        throw Exception('Error HTTP: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('❌ ERROR EnrollmentApiService.updateEnrollmentFields: $e');
       throw Exception('Error al actualizar inscripción: $e');
     }
   }
