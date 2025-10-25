@@ -4,9 +4,10 @@ import '../../models/enrollment_model.dart';
 import '../../services/subject_api_service.dart';
 import '../../services/enrollment_api_service.dart';
 import 'add_enrollment_screen.dart';
+import 'edit_enrollment_screen.dart';
 
 class EnrollmentsScreen extends StatefulWidget {
-  const EnrollmentsScreen({Key? key}) : super(key: key);
+  const EnrollmentsScreen({super.key});
 
   @override
   State<EnrollmentsScreen> createState() => _EnrollmentsScreenState();
@@ -246,7 +247,7 @@ class _EnrollmentsScreenState extends State<EnrollmentsScreen> {
                               value: subject.name,
                               child: Text(subject.name),
                             );
-                          }).toList(),
+                          }),
                         ],
                         onChanged: (value) {
                           setState(() => _selectedSubject = value!);
@@ -471,9 +472,18 @@ class _EnrollmentsScreenState extends State<EnrollmentsScreen> {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 TextButton.icon(
-                  onPressed: () {
-                    // Aquí iría la lógica para editar la inscripción
-                    _showSuccessMessage('Función de edición próximamente');
+                  onPressed: () async {
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => EditEnrollmentScreen(
+                          enrollment: enrollment,
+                        ),
+                      ),
+                    );
+                    if (result == true) {
+                      _loadData(); // Recargar datos después de editar
+                    }
                   },
                   icon: const Icon(Icons.edit, size: 16),
                   label: const Text('Editar'),
