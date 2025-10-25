@@ -23,6 +23,7 @@ class _EnrollmentsScreenState extends State<EnrollmentsScreen> {
   String _searchQuery = '';
   String _selectedGrade = 'Todos';
   String _selectedSubject = 'Todos';
+  String _selectedStatus = 'Activos';
 
   final List<String> _grades = [
     'Todos',
@@ -88,7 +89,12 @@ class _EnrollmentsScreenState extends State<EnrollmentsScreen> {
       final matchesSubject = _selectedSubject == 'Todos' ||
           enrollment.materiaNombre == _selectedSubject;
 
-      return matchesSearch && matchesGrade && matchesSubject;
+      // Filtrar por estado
+      final matchesStatus = _selectedStatus == 'Todos' ||
+          (_selectedStatus == 'Activos' && enrollment.estado == 'activo') ||
+          (_selectedStatus == 'Inactivos' && enrollment.estado == 'inactivo');
+
+      return matchesSearch && matchesGrade && matchesSubject && matchesStatus;
     }).toList();
   }
 
@@ -252,6 +258,60 @@ class _EnrollmentsScreenState extends State<EnrollmentsScreen> {
                         onChanged: (value) {
                           setState(() => _selectedSubject = value!);
                         },
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                // Filtro por estado
+                Row(
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: _selectedStatus,
+                        decoration: InputDecoration(
+                          labelText: 'Filtrar por estado',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          filled: true,
+                          fillColor: Colors.white,
+                          prefixIcon: const Icon(Icons.filter_list),
+                        ),
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'Activos',
+                            child: Text('Solo Activos'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'Inactivos',
+                            child: Text('Solo Inactivos'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'Todos',
+                            child: Text('Todos los Estados'),
+                          ),
+                        ],
+                        onChanged: (value) {
+                          setState(() => _selectedStatus = value!);
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    // Botón para limpiar filtros
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          _searchQuery = '';
+                          _selectedGrade = 'Todos';
+                          _selectedSubject = 'Todos';
+                          _selectedStatus = 'Activos';
+                        });
+                      },
+                      icon: const Icon(Icons.clear, size: 16),
+                      label: const Text('Limpiar'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.indigo,
                       ),
                     ),
                   ],
