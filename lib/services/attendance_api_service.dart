@@ -40,7 +40,7 @@ class AttendanceApiService {
         final responseData = jsonDecode(response.body);
         return responseData['success'] == true;
       }
-      
+
       return false;
     } catch (e) {
       print('Error creating subject configuration: $e');
@@ -48,19 +48,26 @@ class AttendanceApiService {
     }
   }
 
-  /// Obtener configuración de materia por ID
-  Future<SubjectConfiguration?> getSubjectConfiguration(int id) async {
+  /// Obtener configuración de materia por ID y año académico
+  Future<SubjectConfiguration?> getSubjectConfiguration(int materiaId, int añoAcademico) async {
     try {
       final response = await http.get(
-        Uri.parse('$_baseUrl/subject-configurations/$id'),
+        Uri.parse('$_baseUrl/api/configuracion.php?action=obtener&materia_id=$materiaId&año_academico=$añoAcademico'),
         headers: {
           'Content-Type': 'application/json',
         },
       );
 
+      print('🔧 DEBUG AttendanceApiService.getSubjectConfiguration:');
+      print('   URL: ${response.request?.url}');
+      print('   Status code: ${response.statusCode}');
+      print('   Response body: ${response.body}');
+
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return SubjectConfiguration.fromJson(data);
+        final responseData = jsonDecode(response.body);
+        if (responseData['success'] == true && responseData['data'] != null) {
+          return SubjectConfiguration.fromJson(responseData['data']);
+        }
       }
       return null;
     } catch (e) {
@@ -74,7 +81,8 @@ class AttendanceApiService {
       int teacherId) async {
     try {
       final response = await http.get(
-        Uri.parse('$_baseUrl/configuracion.php?action=listar&profesor_id=$teacherId'),
+        Uri.parse(
+            '$_baseUrl/api/configuracion.php?action=profesor&profesor_id=$teacherId&año_academico=${DateTime.now().year}'),
         headers: {
           'Content-Type': 'application/json',
         },
@@ -89,7 +97,9 @@ class AttendanceApiService {
         final responseData = jsonDecode(response.body);
         if (responseData['success'] == true && responseData['data'] != null) {
           final List<dynamic> data = responseData['data'];
-          return data.map((json) => SubjectConfiguration.fromJson(json)).toList();
+          return data
+              .map((json) => SubjectConfiguration.fromJson(json))
+              .toList();
         }
       }
       return [];
@@ -113,6 +123,59 @@ class AttendanceApiService {
       return response.statusCode == 200;
     } catch (e) {
       print('Error updating subject configuration: $e');
+      return false;
+    }
+  }
+
+  /// Verificar si un día es de clase para una materia
+  Future<bool> verifyClassDay(int materiaId, DateTime fecha) async {
+    try {
+      final fechaStr = fecha.toIso8601String().split('T')[0];
+      final response = await http.get(
+        Uri.parse('$_baseUrl/api/configuracion.php?action=verificar_dia&materia_id=$materiaId&fecha=$fechaStr'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      );
+
+      print('🔧 DEBUG AttendanceApiService.verifyClassDay:');
+      print('   URL: ${response.request?.url}');
+      print('   Status code: ${response.statusCode}');
+      print('   Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+        return responseData['success'] == true && responseData['es_dia_clase'] == true;
+      }
+      return false;
+    } catch (e) {
+      print('Error verifying class day: $e');
+      return false;
+    }
+  }
+
+  /// Eliminar configuración de materia
+  Future<bool> deleteSubjectConfiguration(int configId) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$_baseUrl/api/configuracion.php?action=eliminar&id=$configId'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      );
+
+      print('🔧 DEBUG AttendanceApiService.deleteSubjectConfiguration:');
+      print('   URL: ${response.request?.url}');
+      print('   Status code: ${response.statusCode}');
+      print('   Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+        return responseData['success'] == true;
+      }
+      return false;
+    } catch (e) {
+      print('Error deleting subject configuration: $e');
       return false;
     }
   }
