@@ -422,7 +422,8 @@ class _EnrollmentsScreenState extends State<EnrollmentsScreen> {
                 // Filtro por estado
                 Row(
                   children: [
-                    Expanded(
+                    Flexible(
+                      flex: 3,
                       child: DropdownButtonFormField<String>(
                         value: _selectedStatus,
                         decoration: InputDecoration(
@@ -462,21 +463,23 @@ class _EnrollmentsScreenState extends State<EnrollmentsScreen> {
                         },
                       ),
                     ),
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 8),
                     // Botón para limpiar filtros
-                    OutlinedButton.icon(
-                      onPressed: () {
-                        setState(() {
-                          _searchQuery = '';
-                          _selectedGrade = 'Todos';
-                          _selectedSubject = 'Todos';
-                          _selectedStatus = 'Activos';
-                        });
-                      },
-                      icon: const Icon(Icons.clear, size: 16),
-                      label: const Text('Limpiar'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.indigo,
+                    Flexible(
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            _searchQuery = '';
+                            _selectedGrade = 'Todos';
+                            _selectedSubject = 'Todos';
+                            _selectedStatus = 'Activos';
+                          });
+                        },
+                        icon: const Icon(Icons.clear, size: 16),
+                        label: const Text('Limpiar'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.indigo,
+                        ),
                       ),
                     ),
                   ],
