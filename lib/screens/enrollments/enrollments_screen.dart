@@ -373,7 +373,10 @@ class _EnrollmentsScreenState extends State<EnrollmentsScreen> {
                         items: _grades.map((grade) {
                           return DropdownMenuItem(
                             value: grade,
-                            child: Text(grade),
+                            child: Text(
+                              grade,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           );
                         }).toList(),
                         onChanged: (value) {
@@ -401,7 +404,10 @@ class _EnrollmentsScreenState extends State<EnrollmentsScreen> {
                           ..._subjects.map((subject) {
                             return DropdownMenuItem(
                               value: subject.name,
-                              child: Text(subject.name),
+                              child: Text(
+                                subject.name,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             );
                           }),
                         ],
@@ -431,15 +437,24 @@ class _EnrollmentsScreenState extends State<EnrollmentsScreen> {
                         items: [
                           DropdownMenuItem(
                             value: 'Activos',
-                            child: Text('Solo Activos (${_getActiveCount()})'),
+                            child: Text(
+                              'Solo Activos (${_getActiveCount()})',
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                           DropdownMenuItem(
                             value: 'Inactivos',
-                            child: Text('Solo Inactivos (${_getInactiveCount()})'),
+                            child: Text(
+                              'Solo Inactivos (${_getInactiveCount()})',
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                           DropdownMenuItem(
                             value: 'Todos',
-                            child: Text('Todos los Estados (${_enrollments.length})'),
+                            child: Text(
+                              'Todos los Estados (${_enrollments.length})',
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                         ],
                         onChanged: (value) {
