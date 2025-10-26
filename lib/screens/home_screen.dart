@@ -6,7 +6,7 @@ import '../models/user.dart';
 class HomeScreen extends StatefulWidget {
   final User? user;
 
-  const HomeScreen({Key? key, this.user}) : super(key: key);
+  const HomeScreen({super.key, this.user});
 
   @override
   _HomeScreenState createState() => _HomeScreenState();
@@ -54,7 +54,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return Scaffold(
+      return const Scaffold(
         body: Center(
           child: CircularProgressIndicator(),
         ),
@@ -63,7 +63,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Colegio App'),
+        title: const Text('Colegio App'),
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
         actions: [
@@ -79,12 +79,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Row(
                   children: [
                     Icon(Icons.person, color: Colors.grey[600]),
-                    SizedBox(width: 8),
+                    const SizedBox(width: 8),
                     Text(_currentUser?.nombre ?? 'Usuario'),
                   ],
                 ),
               ),
-              PopupMenuItem<String>(
+              const PopupMenuItem<String>(
                 value: 'logout',
                 child: Row(
                   children: [
@@ -96,7 +96,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
             child: Padding(
-              padding: EdgeInsets.all(8.0),
+              padding: const EdgeInsets.all(8.0),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -106,10 +106,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       (_currentUser?.nombre ?? 'U')
                           .substring(0, 1)
                           .toUpperCase(),
-                      style: TextStyle(color: Colors.blue),
+                      style: const TextStyle(color: Colors.blue),
                     ),
                   ),
-                  Icon(Icons.arrow_drop_down),
+                  const Icon(Icons.arrow_drop_down),
                 ],
               ),
             ),
@@ -117,13 +117,13 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       body: Padding(
-        padding: EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Card(
               child: Padding(
-                padding: EdgeInsets.all(16.0),
+                padding: const EdgeInsets.all(16.0),
                 child: Row(
                   children: [
                     CircleAvatar(
@@ -133,21 +133,21 @@ class _HomeScreenState extends State<HomeScreen> {
                         (_currentUser?.nombre ?? 'U')
                             .substring(0, 1)
                             .toUpperCase(),
-                        style: TextStyle(
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
-                    SizedBox(width: 16),
+                    const SizedBox(width: 16),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             'Bienvenido, ${_currentUser?.nombre ?? 'Usuario'}',
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                             ),
@@ -160,7 +160,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           Text(
                             'Rol: ${_currentUser?.rol ?? 'N/A'}',
-                            style: TextStyle(
+                            style: const TextStyle(
                               color: Colors.blue,
                               fontWeight: FontWeight.w500,
                             ),
@@ -172,15 +172,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
-            SizedBox(height: 24),
-            Text(
+            const SizedBox(height: 24),
+            const Text(
               'Módulos del Sistema',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             Expanded(
               child: GridView.count(
                 crossAxisCount: 2,
@@ -193,7 +193,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     color: Colors.green,
                     onTap: () {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
+                        const SnackBar(
                           content: Text('Módulo próximamente disponible'),
                         ),
                       );
@@ -205,7 +205,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     color: Colors.orange,
                     onTap: () {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
+                        const SnackBar(
                           content: Text('Módulo próximamente disponible'),
                         ),
                       );
@@ -217,7 +217,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     color: Colors.purple,
                     onTap: () {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
+                        const SnackBar(
                           content: Text('Módulo próximamente disponible'),
                         ),
                       );
@@ -229,7 +229,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     color: Colors.teal,
                     onTap: () {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
+                        const SnackBar(
                           content: Text('Módulo próximamente disponible'),
                         ),
                       );
@@ -241,7 +241,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     color: Colors.indigo,
                     onTap: () {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
+                        const SnackBar(
                           content: Text('Módulo próximamente disponible'),
                         ),
                       );
@@ -253,7 +253,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     color: Colors.grey,
                     onTap: () {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
+                        const SnackBar(
                           content: Text('Módulo próximamente disponible'),
                         ),
                       );
@@ -283,12 +283,12 @@ class _HomeScreenState extends State<HomeScreen> {
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Padding(
-          padding: EdgeInsets.all(16),
+          padding: const EdgeInsets.all(16),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                padding: EdgeInsets.all(16),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
@@ -299,10 +299,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   color: color,
                 ),
               ),
-              SizedBox(height: 12),
+              const SizedBox(height: 12),
               Text(
                 title,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                 ),

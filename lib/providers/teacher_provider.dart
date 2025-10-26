@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class TeacherProvider with ChangeNotifier {
-  bool _isLoading = false;
+  final bool _isLoading = false;
   String? _error;
 
   bool get isLoading => _isLoading;

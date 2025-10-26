@@ -4,7 +4,7 @@ import '../../services/subject_api_service.dart';
 import 'add_edit_subject_screen.dart';
 
 class SubjectsScreen extends StatefulWidget {
-  const SubjectsScreen({Key? key}) : super(key: key);
+  const SubjectsScreen({super.key});
 
   @override
   State<SubjectsScreen> createState() => _SubjectsScreenState();

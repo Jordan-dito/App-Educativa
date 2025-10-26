@@ -472,7 +472,7 @@ class AuthService {
           '✏️ DEBUG AuthService.editStudent: Iniciando edición de estudiante...');
       print('✏️ DEBUG AuthService.editStudent: Student data: $studentData');
 
-      final url = '${ApiConfig.baseUrl}/api/auth.php?action=edit-student';
+      const url = '${ApiConfig.baseUrl}/api/auth.php?action=edit-student';
       print('✏️ DEBUG AuthService.editStudent: URL: $url');
 
       final response = await http.put(
@@ -538,7 +538,7 @@ class AuthService {
           '🗑️ DEBUG AuthService.deleteStudent: Iniciando eliminación de estudiante...');
       print('🗑️ DEBUG AuthService.deleteStudent: Student ID: $studentId');
 
-      final url = '${ApiConfig.baseUrl}/api/auth.php?action=delete-student';
+      const url = '${ApiConfig.baseUrl}/api/auth.php?action=delete-student';
       print('🗑️ DEBUG AuthService.deleteStudent: URL: $url');
 
       final requestBody = {

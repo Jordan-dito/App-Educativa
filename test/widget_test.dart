@@ -13,7 +13,7 @@ import 'package:colegio_app/main.dart';
 void main() {
   testWidgets('App loads login screen', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(MyApp());
+    await tester.pumpWidget(const MyApp());
 
     // Verify that login screen is displayed.
     expect(find.text('Iniciar Sesión'), findsOneWidget);

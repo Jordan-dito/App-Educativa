@@ -11,7 +11,7 @@ import 'enrollments/enrollments_screen.dart';
 class DashboardScreen extends StatefulWidget {
   final User user;
 
-  const DashboardScreen({Key? key, required this.user}) : super(key: key);
+  const DashboardScreen({super.key, required this.user});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -190,9 +190,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  const Text(
                     '¡Bienvenido!',
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: Colors.white,
                       fontSize: 24,
                       fontWeight: FontWeight.bold,

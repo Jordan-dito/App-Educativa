@@ -7,7 +7,7 @@ import '../../services/subject_api_service.dart';
 import '../../services/enrollment_api_service.dart';
 
 class AddEnrollmentScreen extends StatefulWidget {
-  const AddEnrollmentScreen({Key? key}) : super(key: key);
+  const AddEnrollmentScreen({super.key});
 
   @override
   State<AddEnrollmentScreen> createState() => _AddEnrollmentScreenState();

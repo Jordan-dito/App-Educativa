@@ -47,7 +47,7 @@ class StudentApiService {
         'telefono': student.phone,
         'direccion': student.address,
         'fecha_nacimiento':
-            student.dateOfBirth?.toIso8601String().split('T')[0],
+            student.dateOfBirth.toIso8601String().split('T')[0],
       };
 
       print(

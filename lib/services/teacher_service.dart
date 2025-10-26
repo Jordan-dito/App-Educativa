@@ -88,8 +88,7 @@ class TeacherService {
       }
 
       // Si no se pudo obtener desde la API, crear uno con los datos proporcionados
-      if (updatedTeacher == null) {
-        updatedTeacher = Teacher(
+      updatedTeacher ??= Teacher(
           id: id,
           firstName: teacherData['firstName'] ?? '',
           lastName: teacherData['lastName'] ?? '',
@@ -103,7 +102,6 @@ class TeacherService {
           salary: teacherData['salary'] ?? 0.0,
           isActive: teacherData['isActive'] ?? true,
         );
-      }
 
       // Actualizar también en caché local si es posible
       try {

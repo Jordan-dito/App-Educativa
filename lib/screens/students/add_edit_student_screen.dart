@@ -7,7 +7,7 @@ import '../../services/user_service.dart';
 class AddEditStudentScreen extends StatefulWidget {
   final Student? student;
 
-  const AddEditStudentScreen({Key? key, this.student}) : super(key: key);
+  const AddEditStudentScreen({super.key, this.student});
 
   @override
   State<AddEditStudentScreen> createState() => _AddEditStudentScreenState();
@@ -262,15 +262,15 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          title: Row(
+          title: const Row(
             children: [
               Icon(
                 Icons.check_circle,
                 color: Colors.green,
                 size: 28,
               ),
-              const SizedBox(width: 12),
-              const Text(
+              SizedBox(width: 12),
+              Text(
                 '¡Éxito!',
                 style: TextStyle(
                   fontSize: 20,

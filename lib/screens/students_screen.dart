@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 class StudentsScreen extends StatefulWidget {
+  const StudentsScreen({super.key});
+
   @override
   _StudentsScreenState createState() => _StudentsScreenState();
 }
@@ -45,7 +47,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
     });
 
     // Simular carga de datos
-    await Future.delayed(Duration(seconds: 1));
+    await Future.delayed(const Duration(seconds: 1));
     
     setState(() {
       _isLoading = false;
@@ -76,12 +78,12 @@ class _StudentsScreenState extends State<StudentsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Estudiantes'),
+        title: const Text('Estudiantes'),
         backgroundColor: Colors.green,
         foregroundColor: Colors.white,
         actions: [
           IconButton(
-            icon: Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh),
             onPressed: _loadStudents,
           ),
         ],
@@ -90,7 +92,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
         children: [
           // Barra de búsqueda y filtros
           Container(
-            padding: EdgeInsets.all(16),
+            padding: const EdgeInsets.all(16),
             color: Colors.grey[100],
             child: Column(
               children: [
@@ -98,10 +100,10 @@ class _StudentsScreenState extends State<StudentsScreen> {
                   controller: _searchController,
                   decoration: InputDecoration(
                     hintText: 'Buscar estudiantes...',
-                    prefixIcon: Icon(Icons.search),
+                    prefixIcon: const Icon(Icons.search),
                     suffixIcon: _searchController.text.isNotEmpty
                         ? IconButton(
-                            icon: Icon(Icons.clear),
+                            icon: const Icon(Icons.clear),
                             onPressed: () {
                               _searchController.clear();
                               _searchStudents('');
@@ -116,14 +118,14 @@ class _StudentsScreenState extends State<StudentsScreen> {
                   ),
                   onChanged: _searchStudents,
                 ),
-                SizedBox(height: 12),
+                const SizedBox(height: 12),
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: _grades.map((grade) {
                       final isSelected = _selectedGrade == grade;
                       return Padding(
-                        padding: EdgeInsets.only(right: 8),
+                        padding: const EdgeInsets.only(right: 8),
                         child: FilterChip(
                           label: Text(grade),
                           selected: isSelected,
@@ -148,14 +150,14 @@ class _StudentsScreenState extends State<StudentsScreen> {
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showStudentDialog(),
         backgroundColor: Colors.green,
-        child: Icon(Icons.add, color: Colors.white),
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }
 
   Widget _buildStudentsList() {
     if (_isLoading) {
-      return Center(child: CircularProgressIndicator());
+      return const Center(child: CircularProgressIndicator());
     }
 
     if (_error != null) {
@@ -163,16 +165,16 @@ class _StudentsScreenState extends State<StudentsScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error, size: 64, color: Colors.red),
-            SizedBox(height: 16),
+            const Icon(Icons.error, size: 64, color: Colors.red),
+            const SizedBox(height: 16),
             Text(
               'Error: $_error',
               textAlign: TextAlign.center,
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _loadStudents,
-              child: Text('Reintentar'),
+              child: const Text('Reintentar'),
             ),
           ],
         ),
@@ -184,13 +186,13 @@ class _StudentsScreenState extends State<StudentsScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.school, size: 64, color: Colors.grey),
-          SizedBox(height: 16),
-          Text(
+          const Icon(Icons.school, size: 64, color: Colors.grey),
+          const SizedBox(height: 16),
+          const Text(
             'No hay estudiantes registrados',
             style: TextStyle(fontSize: 18, color: Colors.grey),
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           Text(
             'Toca el botón + para agregar un estudiante',
             style: TextStyle(fontSize: 14, color: Colors.grey[600]),
@@ -207,7 +209,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
 class StudentFormDialog extends StatefulWidget {
   final Map<String, dynamic>? student;
 
-  StudentFormDialog({this.student});
+  const StudentFormDialog({super.key, this.student});
 
   @override
   _StudentFormDialogState createState() => _StudentFormDialogState();
@@ -272,7 +274,7 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
   Future<void> _saveStudent() async {
     if (_formKey.currentState!.validate()) {
       // Simular guardado
-      await Future.delayed(Duration(seconds: 1));
+      await Future.delayed(const Duration(seconds: 1));
 
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -300,7 +302,7 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
             children: [
               TextFormField(
                 controller: _nameController,
-                decoration: InputDecoration(labelText: 'Nombre'),
+                decoration: const InputDecoration(labelText: 'Nombre'),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Por favor ingrese el nombre';
@@ -310,7 +312,7 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
               ),
               TextFormField(
                 controller: _lastNameController,
-                decoration: InputDecoration(labelText: 'Apellido'),
+                decoration: const InputDecoration(labelText: 'Apellido'),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Por favor ingrese el apellido';
@@ -320,7 +322,7 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
               ),
               TextFormField(
                 controller: _emailController,
-                decoration: InputDecoration(labelText: 'Email'),
+                decoration: const InputDecoration(labelText: 'Email'),
                 keyboardType: TextInputType.emailAddress,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -332,13 +334,13 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
                   return null;
                 },
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               Row(
                 children: [
                   Expanded(
                     child: DropdownButtonFormField<String>(
                       value: _selectedGrade,
-                      decoration: InputDecoration(labelText: 'Grado'),
+                      decoration: const InputDecoration(labelText: 'Grado'),
                       items: _grades.map((grade) {
                         return DropdownMenuItem(
                           value: grade,
@@ -352,11 +354,11 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
                       },
                     ),
                   ),
-                  SizedBox(width: 16),
+                  const SizedBox(width: 16),
                   Expanded(
                     child: DropdownButtonFormField<String>(
                       value: _selectedSection,
-                      decoration: InputDecoration(labelText: 'Sección'),
+                      decoration: const InputDecoration(labelText: 'Sección'),
                       items: _sections.map((section) {
                         return DropdownMenuItem(
                           value: section,
@@ -374,12 +376,12 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
               ),
               TextFormField(
                 controller: _phoneController,
-                decoration: InputDecoration(labelText: 'Teléfono (opcional)'),
+                decoration: const InputDecoration(labelText: 'Teléfono (opcional)'),
                 keyboardType: TextInputType.phone,
               ),
               TextFormField(
                 controller: _addressController,
-                decoration: InputDecoration(labelText: 'Dirección (opcional)'),
+                decoration: const InputDecoration(labelText: 'Dirección (opcional)'),
                 maxLines: 2,
               ),
             ],
@@ -389,11 +391,11 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: Text('Cancelar'),
+          child: const Text('Cancelar'),
         ),
         ElevatedButton(
           onPressed: _saveStudent,
-          child: Text('Guardar'),
+          child: const Text('Guardar'),
         ),
       ],
     );

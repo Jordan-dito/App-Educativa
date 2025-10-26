@@ -4,10 +4,10 @@ import '../../models/enrollment_model.dart';
 import '../../services/enrollment_api_service.dart';
 import '../../services/user_service.dart';
 import '../../models/user.dart';
-import '../enrollments/add_enrollment_screen.dart';
+import 'student_subject_enrollment_screen.dart';
 
 class StudentEnrollmentsScreen extends StatefulWidget {
-  const StudentEnrollmentsScreen({Key? key}) : super(key: key);
+  const StudentEnrollmentsScreen({super.key});
 
   @override
   State<StudentEnrollmentsScreen> createState() =>
@@ -49,8 +49,9 @@ class _StudentEnrollmentsScreenState extends State<StudentEnrollmentsScreen> {
       // Obtener el usuario actual
       final user = await UserService.getCurrentUser();
 
-      if (_isDisposed || !mounted || _loadingCompleter?.isCompleted == true)
+      if (_isDisposed || !mounted || _loadingCompleter?.isCompleted == true) {
         return;
+      }
       if (user == null) {
         _showErrorMessage('No se pudo obtener la información del usuario');
         return;
@@ -63,8 +64,9 @@ class _StudentEnrollmentsScreenState extends State<StudentEnrollmentsScreen> {
         return;
       }
 
-      if (_isDisposed || !mounted || _loadingCompleter?.isCompleted == true)
+      if (_isDisposed || !mounted || _loadingCompleter?.isCompleted == true) {
         return;
+      }
       setState(() {
         _currentUser = user;
       });
@@ -386,11 +388,11 @@ class _StudentEnrollmentsScreenState extends State<StudentEnrollmentsScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          // Navegar a la pantalla de agregar inscripción
+          // Navegar a la pantalla específica para estudiantes
           final result = await Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => const AddEnrollmentScreen(),
+              builder: (context) => const StudentSubjectEnrollmentScreen(),
             ),
           );
           if (result == true) {

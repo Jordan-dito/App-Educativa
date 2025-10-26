@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../../models/teacher_model.dart';
 import '../../services/teacher_service.dart';
 import '../../services/auth_service.dart';
@@ -7,7 +6,7 @@ import '../../services/auth_service.dart';
 class AddEditTeacherScreen extends StatefulWidget {
   final Teacher? teacher;
 
-  const AddEditTeacherScreen({Key? key, this.teacher}) : super(key: key);
+  const AddEditTeacherScreen({super.key, this.teacher});
 
   @override
   State<AddEditTeacherScreen> createState() => _AddEditTeacherScreenState();
@@ -193,15 +192,15 @@ class _AddEditTeacherScreenState extends State<AddEditTeacherScreen> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          title: Row(
+          title: const Row(
             children: [
               Icon(
                 Icons.check_circle,
                 color: Colors.green,
                 size: 28,
               ),
-              const SizedBox(width: 12),
-              const Text(
+              SizedBox(width: 12),
+              Text(
                 '¡Éxito!',
                 style: TextStyle(
                   fontSize: 20,

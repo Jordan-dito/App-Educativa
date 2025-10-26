@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter/foundation.dart';
 import '../../models/subject_model.dart';
 import '../../services/subject_api_service.dart';
 import '../../services/teacher_service.dart';
@@ -9,7 +7,7 @@ import '../../models/teacher_model.dart';
 class AddEditSubjectScreen extends StatefulWidget {
   final Subject? subject;
 
-  const AddEditSubjectScreen({Key? key, this.subject}) : super(key: key);
+  const AddEditSubjectScreen({super.key, this.subject});
 
   @override
   State<AddEditSubjectScreen> createState() => _AddEditSubjectScreenState();
@@ -305,7 +303,7 @@ class _AddEditSubjectScreenState extends State<AddEditSubjectScreen> {
                               value: teacher.id?.toString(),
                               child: Text(teacher.fullName),
                             );
-                          }).toList(),
+                          }),
                         ],
                         onChanged: (value) {
                           setState(() {

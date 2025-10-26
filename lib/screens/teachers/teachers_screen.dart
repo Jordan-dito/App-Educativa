@@ -4,7 +4,7 @@ import '../../services/teacher_service.dart';
 import 'add_edit_teacher_screen.dart';
 
 class TeachersScreen extends StatefulWidget {
-  const TeachersScreen({Key? key}) : super(key: key);
+  const TeachersScreen({super.key});
 
   @override
   State<TeachersScreen> createState() => _TeachersScreenState();
