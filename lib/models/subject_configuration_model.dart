@@ -44,16 +44,26 @@ class SubjectConfiguration {
       id: json['id'] ?? json['configuracion_id'],
       subjectId: json['materia_id'] ?? json['subject_id'],
       teacherId: json['profesor_id'] ?? json['teacher_id'],
-      academicYear: json['año_academico']?.toString() ?? json['academic_year']?.toString() ?? DateTime.now().year.toString(),
+      academicYear: json['año_academico']?.toString() ??
+          json['academic_year']?.toString() ??
+          DateTime.now().year.toString(),
       startDate: DateTime.parse(json['fecha_inicio'] ?? json['start_date']),
       endDate: DateTime.parse(json['fecha_fin'] ?? json['end_date']),
       classDays: classDays,
       classTime: json['hora_clase'] ?? json['class_time'],
-      attendanceGoal: json['meta_asistencia']?.toInt() ?? json['attendance_goal']?.toInt() ?? 80,
-      createdAt: json['fecha_creacion'] != null ? DateTime.parse(json['fecha_creacion']) : 
-                 json['created_at'] != null ? DateTime.parse(json['created_at']) : null,
-      updatedAt: json['fecha_actualizacion'] != null ? DateTime.parse(json['fecha_actualizacion']) :
-                 json['updated_at'] != null ? DateTime.parse(json['updated_at']) : null,
+      attendanceGoal: json['meta_asistencia']?.toInt() ??
+          json['attendance_goal']?.toInt() ??
+          80,
+      createdAt: json['fecha_creacion'] != null
+          ? DateTime.parse(json['fecha_creacion'])
+          : json['created_at'] != null
+              ? DateTime.parse(json['created_at'])
+              : null,
+      updatedAt: json['fecha_actualizacion'] != null
+          ? DateTime.parse(json['fecha_actualizacion'])
+          : json['updated_at'] != null
+              ? DateTime.parse(json['updated_at'])
+              : null,
     );
   }
 

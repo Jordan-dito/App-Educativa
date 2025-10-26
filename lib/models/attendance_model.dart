@@ -45,15 +45,27 @@ class AttendanceRecord {
   });
 
   factory AttendanceRecord.fromJson(Map<String, dynamic> json) {
+    // Asegurar que studentId no sea null
+    final rawStudentId = json['student_id'] ?? json['estudiante_id'];
+    if (rawStudentId == null) {
+      throw ArgumentError('student_id is required in AttendanceRecord');
+    }
+
     return AttendanceRecord(
       id: json['id'],
-      subjectConfigurationId: json['subject_configuration_id'],
-      studentId: json['student_id'],
-      classDate: DateTime.parse(json['class_date']),
-      status: AttendanceStatus.fromString(json['status']),
+      subjectConfigurationId: json['subject_configuration_id'] ?? 0,
+      studentId: rawStudentId is int
+          ? rawStudentId
+          : int.parse(rawStudentId.toString()),
+      classDate: DateTime.parse(json['class_date'] ?? json['fecha_clase']),
+      status: AttendanceStatus.fromString(json['status'] ?? json['estado']),
       notes: json['notes'],
-      createdAt: json['created_at'] != null ? DateTime.parse(json['created_at']) : null,
-      updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at']) : null,
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'])
+          : null,
+      updatedAt: json['updated_at'] != null
+          ? DateTime.parse(json['updated_at'])
+          : null,
     );
   }
 

@@ -861,24 +861,114 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
       final selectedSubject = await showDialog<Subject>(
         context: context,
-        builder: (context) => AlertDialog(
-          title: Text('Seleccionar Materia - $action'),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: teacherSubjects.length,
-              itemBuilder: (context, index) {
-                final subject = teacherSubjects[index];
-                return ListTile(
-                  leading: const Icon(Icons.book),
-                  title: Text(subject.name),
-                  subtitle: Text('${subject.grade} ${subject.section}'),
-                  onTap: () => Navigator.pop(context, subject),
-                );
-              },
-            ),
-          ),
+        builder: (context) => StatefulBuilder(
+          builder: (context, setState) {
+            final TextEditingController searchController =
+                TextEditingController();
+            List<Subject> filteredSubjects = teacherSubjects;
+
+            void _filterSubjects(String query) {
+              setState(() {
+                if (query.isEmpty) {
+                  filteredSubjects = teacherSubjects;
+                } else {
+                  filteredSubjects = teacherSubjects.where((subject) {
+                    return subject.name
+                            .toLowerCase()
+                            .contains(query.toLowerCase()) ||
+                        subject.grade
+                            .toLowerCase()
+                            .contains(query.toLowerCase()) ||
+                        subject.section
+                            .toLowerCase()
+                            .contains(query.toLowerCase());
+                  }).toList();
+                }
+              });
+            }
+
+            return AlertDialog(
+              title: Text('Seleccionar Materia - $action'),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Barra de búsqueda
+                    TextField(
+                      controller: searchController,
+                      decoration: InputDecoration(
+                        hintText: 'Buscar materia...',
+                        prefixIcon: const Icon(Icons.search),
+                        suffixIcon: searchController.text.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear),
+                                onPressed: () {
+                                  searchController.clear();
+                                  _filterSubjects('');
+                                },
+                              )
+                            : null,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        filled: true,
+                        fillColor: Colors.grey[50],
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                      ),
+                      onChanged: _filterSubjects,
+                    ),
+                    const SizedBox(height: 16),
+                    // Lista de materias con altura fija
+                    SizedBox(
+                      height: 300,
+                      child: filteredSubjects.isEmpty
+                          ? const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(16.0),
+                                child: Text(
+                                  'No se encontraron materias',
+                                  style: TextStyle(color: Colors.grey),
+                                ),
+                              ),
+                            )
+                          : ListView.builder(
+                              shrinkWrap: true,
+                              itemCount: filteredSubjects.length,
+                              itemBuilder: (context, index) {
+                                final subject = filteredSubjects[index];
+                                return Card(
+                                  margin: const EdgeInsets.only(bottom: 8),
+                                  elevation: 1,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: ListTile(
+                                    leading: const Icon(Icons.book,
+                                        color: Colors.indigo),
+                                    title: Text(
+                                      subject.name,
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.w500),
+                                    ),
+                                    subtitle: Text(
+                                        '${subject.grade} ${subject.section}'),
+                                    trailing: const Icon(
+                                        Icons.arrow_forward_ios,
+                                        size: 16),
+                                    onTap: () =>
+                                        Navigator.pop(context, subject),
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
         ),
       );
 
@@ -887,7 +977,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => TeacherConfigurationScreen(subject: selectedSubject),
+              builder: (context) =>
+                  TeacherConfigurationScreen(subject: selectedSubject),
             ),
           );
         } else if (action == 'Tomar Asistencia') {
@@ -955,24 +1046,114 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
       final selectedSubject = await showDialog<Subject>(
         context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Seleccionar Materia'),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: studentSubjects.length,
-              itemBuilder: (context, index) {
-                final subject = studentSubjects[index];
-                return ListTile(
-                  leading: const Icon(Icons.book),
-                  title: Text(subject.name),
-                  subtitle: Text('${subject.grade} ${subject.section}'),
-                  onTap: () => Navigator.pop(context, subject),
-                );
-              },
-            ),
-          ),
+        builder: (context) => StatefulBuilder(
+          builder: (context, setState) {
+            final TextEditingController searchController =
+                TextEditingController();
+            List<Subject> filteredSubjects = studentSubjects;
+
+            void filterSubjects(String query) {
+              setState(() {
+                if (query.isEmpty) {
+                  filteredSubjects = studentSubjects;
+                } else {
+                  filteredSubjects = studentSubjects.where((subject) {
+                    return subject.name
+                            .toLowerCase()
+                            .contains(query.toLowerCase()) ||
+                        subject.grade
+                            .toLowerCase()
+                            .contains(query.toLowerCase()) ||
+                        subject.section
+                            .toLowerCase()
+                            .contains(query.toLowerCase());
+                  }).toList();
+                }
+              });
+            }
+
+            return AlertDialog(
+              title: const Text('Seleccionar Materia'),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Barra de búsqueda
+                    TextField(
+                      controller: searchController,
+                      decoration: InputDecoration(
+                        hintText: 'Buscar materia...',
+                        prefixIcon: const Icon(Icons.search),
+                        suffixIcon: searchController.text.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear),
+                                onPressed: () {
+                                  searchController.clear();
+                                  filterSubjects('');
+                                },
+                              )
+                            : null,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        filled: true,
+                        fillColor: Colors.grey[50],
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                      ),
+                      onChanged: filterSubjects,
+                    ),
+                    const SizedBox(height: 16),
+                    // Lista de materias con altura fija
+                    SizedBox(
+                      height: 300,
+                      child: filteredSubjects.isEmpty
+                          ? const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(16.0),
+                                child: Text(
+                                  'No se encontraron materias',
+                                  style: TextStyle(color: Colors.grey),
+                                ),
+                              ),
+                            )
+                          : ListView.builder(
+                              shrinkWrap: true,
+                              itemCount: filteredSubjects.length,
+                              itemBuilder: (context, index) {
+                                final subject = filteredSubjects[index];
+                                return Card(
+                                  margin: const EdgeInsets.only(bottom: 8),
+                                  elevation: 1,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: ListTile(
+                                    leading: const Icon(Icons.book,
+                                        color: Colors.indigo),
+                                    title: Text(
+                                      subject.name,
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.w500),
+                                    ),
+                                    subtitle: Text(
+                                        '${subject.grade} ${subject.section}'),
+                                    trailing: const Icon(
+                                        Icons.arrow_forward_ios,
+                                        size: 16),
+                                    onTap: () =>
+                                        Navigator.pop(context, subject),
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
         ),
       );
 
@@ -993,7 +1174,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => StudentAttendanceScreen(configuration: config),
+            builder: (context) =>
+                StudentAttendanceScreen(configuration: config),
           ),
         );
       }

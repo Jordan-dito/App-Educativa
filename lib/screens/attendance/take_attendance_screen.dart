@@ -35,12 +35,19 @@ class _TakeAttendanceScreenState extends State<TakeAttendanceScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final students = await _attendanceService.getEnrolledStudents(widget.configuration.id!);
+      final students = await _attendanceService
+          .getInscribedStudents(widget.configuration.subjectId);
       setState(() {
         _students = students;
         // Inicializar todos como ausentes por defecto
         for (var student in students) {
-          _attendanceStatus[student['id']] = AttendanceStatus.absent;
+          final idRaw = student['estudiante_id'] ?? student['id'];
+          if (idRaw != null) {
+            final id = idRaw is int ? idRaw : int.tryParse(idRaw.toString());
+            if (id != null) {
+              _attendanceStatus[id] = AttendanceStatus.absent;
+            }
+          }
         }
       });
     } catch (e) {
@@ -53,7 +60,7 @@ class _TakeAttendanceScreenState extends State<TakeAttendanceScreen> {
   Future<void> _checkExistingAttendance() async {
     try {
       final hasAttendance = await _attendanceService.hasAttendanceForDate(
-        widget.configuration.id!,
+        widget.configuration.subjectId,
         _selectedDate,
       );
 
@@ -68,13 +75,16 @@ class _TakeAttendanceScreenState extends State<TakeAttendanceScreen> {
   Future<void> _loadExistingAttendance() async {
     try {
       final records = await _attendanceService.getAttendanceByDate(
-        widget.configuration.id!,
+        widget.configuration.subjectId,
         _selectedDate,
       );
 
       setState(() {
         for (var record in records) {
-          _attendanceStatus[record.studentId] = record.status;
+          // studentId es required ahora, solo validamos que sea > 0
+          if (record.studentId > 0) {
+            _attendanceStatus[record.studentId] = record.status;
+          }
         }
       });
     } catch (e) {
@@ -121,7 +131,15 @@ class _TakeAttendanceScreenState extends State<TakeAttendanceScreen> {
   }
 
   bool _isValidClassDay() {
-    final dayNames = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
+    final dayNames = [
+      'lunes',
+      'martes',
+      'miercoles',
+      'jueves',
+      'viernes',
+      'sabado',
+      'domingo'
+    ];
     final selectedDayName = dayNames[_selectedDate.weekday - 1];
     return widget.configuration.classDays.contains(selectedDayName);
   }
@@ -137,14 +155,15 @@ class _TakeAttendanceScreenState extends State<TakeAttendanceScreen> {
     try {
       final records = _attendanceStatus.entries.map((entry) {
         return AttendanceRecord(
-          subjectConfigurationId: widget.configuration.id!,
+          subjectConfigurationId: widget.configuration.subjectId,
           studentId: entry.key,
           classDate: _selectedDate,
           status: entry.value,
         );
       }).toList();
 
-      final success = await _attendanceService.createMultipleAttendanceRecords(records);
+      final success =
+          await _attendanceService.createMultipleAttendanceRecords(records);
 
       if (success) {
         _showSuccessMessage('Asistencia guardada exitosamente');
@@ -233,7 +252,8 @@ class _TakeAttendanceScreenState extends State<TakeAttendanceScreen> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        widget.configuration.subjectId.toString(), // Aquí deberías mostrar el nombre de la materia
+                        widget.configuration.subjectId
+                            .toString(), // Aquí deberías mostrar el nombre de la materia
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -246,7 +266,8 @@ class _TakeAttendanceScreenState extends State<TakeAttendanceScreen> {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
+                    Icon(Icons.calendar_today,
+                        size: 16, color: Colors.grey[600]),
                     const SizedBox(width: 8),
                     Text(
                       '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
@@ -254,7 +275,8 @@ class _TakeAttendanceScreenState extends State<TakeAttendanceScreen> {
                     ),
                     const SizedBox(width: 16),
                     if (widget.configuration.classTime != null) ...[
-                      Icon(Icons.access_time, size: 16, color: Colors.grey[600]),
+                      Icon(Icons.access_time,
+                          size: 16, color: Colors.grey[600]),
                       const SizedBox(width: 8),
                       Text(
                         widget.configuration.classTime!,
@@ -273,11 +295,13 @@ class _TakeAttendanceScreenState extends State<TakeAttendanceScreen> {
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.warning, color: Colors.orange[700], size: 16),
+                        Icon(Icons.warning,
+                            color: Colors.orange[700], size: 16),
                         const SizedBox(width: 8),
                         Text(
                           'No hay clases programadas para este día',
-                          style: TextStyle(color: Colors.orange[700], fontSize: 12),
+                          style: TextStyle(
+                              color: Colors.orange[700], fontSize: 12),
                         ),
                       ],
                     ),
@@ -295,7 +319,8 @@ class _TakeAttendanceScreenState extends State<TakeAttendanceScreen> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.school, size: 80, color: Colors.grey[400]),
+                            Icon(Icons.school,
+                                size: 80, color: Colors.grey[400]),
                             const SizedBox(height: 16),
                             Text(
                               'No hay estudiantes inscritos',
@@ -312,8 +337,29 @@ class _TakeAttendanceScreenState extends State<TakeAttendanceScreen> {
                         itemCount: _students.length,
                         itemBuilder: (context, index) {
                           final student = _students[index];
-                          final studentId = student['id'];
-                          final currentStatus = _getAttendanceStatus(studentId);
+                          final studentIdRaw =
+                              student['estudiante_id'] ?? student['id'];
+                          if (studentIdRaw == null) {
+                            // Si no hay ID, retornar un contenedor vacío
+                            return const SizedBox.shrink();
+                          }
+
+                          // Convertir a int de forma segura
+                          int? studentId;
+                          if (studentIdRaw is int) {
+                            studentId = studentIdRaw;
+                          } else {
+                            studentId = int.tryParse(studentIdRaw.toString());
+                          }
+
+                          if (studentId == null) {
+                            return const SizedBox.shrink();
+                          }
+
+                          // Usar studentId con el operador ! para indicar que no es null
+                          final int validStudentId = studentId;
+                          final currentStatus =
+                              _getAttendanceStatus(validStudentId);
 
                           return Card(
                             margin: const EdgeInsets.only(bottom: 12),
@@ -326,7 +372,9 @@ class _TakeAttendanceScreenState extends State<TakeAttendanceScreen> {
                               child: Row(
                                 children: [
                                   CircleAvatar(
-                                    backgroundColor: _getStatusColor(currentStatus).withOpacity(0.1),
+                                    backgroundColor:
+                                        _getStatusColor(currentStatus)
+                                            .withOpacity(0.1),
                                     child: Icon(
                                       _getStatusIcon(currentStatus),
                                       color: _getStatusColor(currentStatus),
@@ -335,17 +383,27 @@ class _TakeAttendanceScreenState extends State<TakeAttendanceScreen> {
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          student['name'] ?? 'Estudiante',
+                                          student['nombre_completo'] ??
+                                              student['nombre_estudiante'] ??
+                                              (() {
+                                                final nombre =
+                                                    '${student['nombre'] ?? ''} ${student['apellido'] ?? ''}'
+                                                        .trim();
+                                                return nombre.isEmpty
+                                                    ? 'Estudiante ID: $studentId'
+                                                    : nombre;
+                                              })(),
                                           style: const TextStyle(
                                             fontSize: 16,
                                             fontWeight: FontWeight.w500,
                                           ),
                                         ),
                                         Text(
-                                          'ID: ${student['id']}',
+                                          'Grado: ${student['grado'] ?? 'N/A'} ${student['seccion'] ?? ''}',
                                           style: TextStyle(
                                             color: Colors.grey[600],
                                             fontSize: 12,
@@ -360,21 +418,21 @@ class _TakeAttendanceScreenState extends State<TakeAttendanceScreen> {
                                     children: [
                                       _buildStatusButton(
                                         AttendanceStatus.present,
-                                        studentId,
+                                        validStudentId,
                                         Colors.green,
                                         Icons.check,
                                       ),
                                       const SizedBox(width: 8),
                                       _buildStatusButton(
                                         AttendanceStatus.absent,
-                                        studentId,
+                                        validStudentId,
                                         Colors.red,
                                         Icons.close,
                                       ),
                                       const SizedBox(width: 8),
                                       _buildStatusButton(
                                         AttendanceStatus.late,
-                                        studentId,
+                                        validStudentId,
                                         Colors.orange,
                                         Icons.access_time,
                                       ),
@@ -434,18 +492,22 @@ class _TakeAttendanceScreenState extends State<TakeAttendanceScreen> {
                   width: double.infinity,
                   height: 50,
                   child: ElevatedButton.icon(
-                    onPressed: _isSaving || !_isValidClassDay() ? null : _saveAttendance,
+                    onPressed: _isSaving || !_isValidClassDay()
+                        ? null
+                        : _saveAttendance,
                     icon: _isSaving
                         ? const SizedBox(
                             width: 20,
                             height: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
                             ),
                           )
                         : const Icon(Icons.save),
-                    label: Text(_isSaving ? 'Guardando...' : 'Guardar Asistencia'),
+                    label:
+                        Text(_isSaving ? 'Guardando...' : 'Guardar Asistencia'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.indigo,
                       foregroundColor: Colors.white,
@@ -463,9 +525,10 @@ class _TakeAttendanceScreenState extends State<TakeAttendanceScreen> {
     );
   }
 
-  Widget _buildStatusButton(AttendanceStatus status, int studentId, Color color, IconData icon) {
+  Widget _buildStatusButton(
+      AttendanceStatus status, int studentId, Color color, IconData icon) {
     final isSelected = _getAttendanceStatus(studentId) == status;
-    
+
     return GestureDetector(
       onTap: () => _setAttendanceStatus(studentId, status),
       child: Container(

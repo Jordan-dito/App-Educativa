@@ -24,7 +24,7 @@ class AttendanceApiService {
       };
 
       final response = await http.post(
-        Uri.parse('$_baseUrl/configuracion.php?action=guardar'),
+        Uri.parse('$_baseUrl/api/configuracion.php?action=guardar'),
         headers: {
           'Content-Type': 'application/json',
         },
@@ -49,10 +49,12 @@ class AttendanceApiService {
   }
 
   /// Obtener configuración de materia por ID y año académico
-  Future<SubjectConfiguration?> getSubjectConfiguration(int materiaId, int añoAcademico) async {
+  Future<SubjectConfiguration?> getSubjectConfiguration(
+      int materiaId, int year) async {
     try {
       final response = await http.get(
-        Uri.parse('$_baseUrl/api/configuracion.php?action=obtener&materia_id=$materiaId&año_academico=$añoAcademico'),
+        Uri.parse(
+            '$_baseUrl/api/configuracion.php?action=obtener&materia_id=$materiaId&año_academico=$year'),
         headers: {
           'Content-Type': 'application/json',
         },
@@ -132,7 +134,8 @@ class AttendanceApiService {
     try {
       final fechaStr = fecha.toIso8601String().split('T')[0];
       final response = await http.get(
-        Uri.parse('$_baseUrl/api/configuracion.php?action=verificar_dia&materia_id=$materiaId&fecha=$fechaStr'),
+        Uri.parse(
+            '$_baseUrl/api/configuracion.php?action=verificar_dia&materia_id=$materiaId&fecha=$fechaStr'),
         headers: {
           'Content-Type': 'application/json',
         },
@@ -145,7 +148,8 @@ class AttendanceApiService {
 
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
-        return responseData['success'] == true && responseData['es_dia_clase'] == true;
+        return responseData['success'] == true &&
+            responseData['es_dia_clase'] == true;
       }
       return false;
     } catch (e) {
@@ -158,7 +162,8 @@ class AttendanceApiService {
   Future<bool> deleteSubjectConfiguration(int configId) async {
     try {
       final response = await http.delete(
-        Uri.parse('$_baseUrl/api/configuracion.php?action=eliminar&id=$configId'),
+        Uri.parse(
+            '$_baseUrl/api/configuracion.php?action=eliminar&id=$configId'),
         headers: {
           'Content-Type': 'application/json',
         },
@@ -291,28 +296,6 @@ class AttendanceApiService {
     }
   }
 
-  /// Obtener estudiantes inscritos en una materia
-  Future<List<Map<String, dynamic>>> getEnrolledStudents(
-      int subjectConfigId) async {
-    try {
-      final response = await http.get(
-        Uri.parse('$_baseUrl/subject-configurations/$subjectConfigId/students'),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
-        return data.cast<Map<String, dynamic>>();
-      }
-      return [];
-    } catch (e) {
-      print('Error getting enrolled students: $e');
-      return [];
-    }
-  }
-
   /// Verificar si ya se tomó asistencia en una fecha específica
   Future<bool> hasAttendanceForDate(int subjectConfigId, DateTime date) async {
     try {
@@ -329,6 +312,78 @@ class AttendanceApiService {
     } catch (e) {
       print('Error checking attendance for date: $e');
       return false;
+    }
+  }
+
+  // ===== NUEVOS MÉTODOS PARA ASISTENCIA =====
+
+  /// Tomar asistencia para múltiples estudiantes
+  Future<bool> takeAttendance({
+    required int materiaId,
+    required DateTime fechaClase,
+    required int profesorId,
+    required List<Map<String, dynamic>> asistencias,
+  }) async {
+    try {
+      final requestData = {
+        'materia_id': materiaId,
+        'fecha_clase': fechaClase.toIso8601String().split('T')[0],
+        'profesor_id': profesorId,
+        'asistencias': asistencias,
+      };
+
+      final response = await http.post(
+        Uri.parse('$_baseUrl/api/asistencia.php?action=tomar'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(requestData),
+      );
+
+      print('🔧 DEBUG AttendanceApiService.takeAttendance:');
+      print('   URL: ${response.request?.url}');
+      print('   Status code: ${response.statusCode}');
+      print('   Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+        return responseData['success'] == true;
+      }
+
+      return false;
+    } catch (e) {
+      print('Error taking attendance: $e');
+      return false;
+    }
+  }
+
+  /// Obtener estudiantes inscritos en una materia
+  Future<List<Map<String, dynamic>>> getInscribedStudents(int materiaId) async {
+    try {
+      final response = await http.get(
+        Uri.parse(
+            '$_baseUrl/api/asistencia.php?action=estudiantes_inscritos&materia_id=$materiaId'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      );
+
+      print('🔧 DEBUG AttendanceApiService.getInscribedStudents:');
+      print('   URL: ${response.request?.url}');
+      print('   Status code: ${response.statusCode}');
+      print('   Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+        if (responseData['success'] == true && responseData['data'] != null) {
+          final List<dynamic> data = responseData['data'];
+          return data.cast<Map<String, dynamic>>();
+        }
+      }
+      return [];
+    } catch (e) {
+      print('Error getting inscribed students: $e');
+      return [];
     }
   }
 }

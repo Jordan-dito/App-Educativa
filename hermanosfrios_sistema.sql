@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: mysql-hermanosfrios.alwaysdata.net
--- Generation Time: Oct 26, 2025 at 09:30 PM
+-- Generation Time: Oct 27, 2025 at 12:02 AM
 -- Server version: 10.11.14-MariaDB
 -- PHP Version: 7.4.33
 
@@ -28,11 +28,13 @@ SET time_zone = "+00:00";
 --
 
 CREATE TABLE `asistencia` (
-  `materia_id` int(11) DEFAULT NULL,
-  `estudiante_id` int(11) DEFAULT NULL,
-  `fecha_clase` date DEFAULT NULL,
-  `estado` enum('presente','ausente','tardanza') DEFAULT NULL,
-  `profesor_id` int(11) DEFAULT NULL
+  `id` int(11) NOT NULL,
+  `materia_id` int(11) NOT NULL,
+  `estudiante_id` int(11) NOT NULL,
+  `fecha_clase` date NOT NULL,
+  `estado` enum('presente','ausente','tardanza') NOT NULL,
+  `profesor_id` int(11) NOT NULL,
+  `fecha_registro` timestamp NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -42,14 +44,24 @@ CREATE TABLE `asistencia` (
 --
 
 CREATE TABLE `configuracion_materia` (
-  `materia_id` int(11) DEFAULT NULL,
-  `año_academico` year(4) DEFAULT NULL,
-  `fecha_inicio` date DEFAULT NULL,
-  `fecha_fin` date DEFAULT NULL,
-  `dias_clase` varchar(50) DEFAULT NULL,
+  `id` int(11) NOT NULL,
+  `materia_id` int(11) NOT NULL,
+  `año_academico` year(4) NOT NULL,
+  `fecha_inicio` date NOT NULL,
+  `fecha_fin` date NOT NULL,
+  `dias_clase` varchar(50) NOT NULL,
   `hora_clase` time DEFAULT NULL,
-  `meta_asistencia` decimal(5,2) DEFAULT NULL
+  `meta_asistencia` decimal(5,2) DEFAULT 80.00,
+  `estado` enum('activo','inactivo') DEFAULT 'activo',
+  `fecha_creacion` timestamp NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `configuracion_materia`
+--
+
+INSERT INTO `configuracion_materia` (`id`, `materia_id`, `año_academico`, `fecha_inicio`, `fecha_fin`, `dias_clase`, `hora_clase`, `meta_asistencia`, `estado`, `fecha_creacion`) VALUES
+(1, 1, '2025', '2025-10-26', '2026-02-23', 'viernes,lunes', '05:00:00', 80.00, 'activo', '2025-10-26 22:52:50');
 
 -- --------------------------------------------------------
 
@@ -94,7 +106,8 @@ INSERT INTO `estudiantes` (`id`, `usuario_id`, `nombre`, `apellido`, `grado`, `s
 (16, 22, 'sostenes', 'chali', '3°', 'B', '30828283', 'jocotenango', '2009-10-26', 'activo', '2025-10-24 02:55:15', '2025-10-24 02:55:15'),
 (17, 23, 'lupita', 'mutx', '2°', 'A', '30828253', 'victorias', '2010-04-14', 'activo', '2025-10-24 04:05:28', '2025-10-24 04:05:28'),
 (18, 24, 'gerson', 'sec', '3°', 'A', '33008649', 'sumpango', '2013-10-29', 'activo', '2025-10-26 15:05:56', '2025-10-26 15:05:56'),
-(19, 25, 'luis', 'angel', '3°', 'B', '78945645', 'los llanos', '2014-10-23', 'activo', '2025-10-26 16:31:41', '2025-10-26 16:31:41');
+(19, 25, 'luis', 'angel', '3°', 'B', '78945645', 'los llanos', '2014-10-23', 'activo', '2025-10-26 16:31:41', '2025-10-26 16:31:41'),
+(20, 28, 'Stiven', 'Lima', '3°', 'A', '12345678', 'Mani', '2025-10-26', 'activo', '2025-10-26 22:04:04', '2025-10-26 22:04:04');
 
 -- --------------------------------------------------------
 
@@ -140,7 +153,10 @@ INSERT INTO `inscripciones` (`id`, `estudiante_id`, `materia_id`, `fecha_inscrip
 (36, 19, 11, '2025-10-26', 'activo', '2025-10-26 16:32:56'),
 (37, 19, 6, '2025-10-26', 'activo', '2025-10-26 16:38:19'),
 (38, 19, 5, '2025-10-26', 'activo', '2025-10-26 16:38:56'),
-(39, 16, 12, '2025-10-26', 'activo', '2025-10-26 16:45:02');
+(39, 16, 12, '2025-10-26', 'activo', '2025-10-26 16:45:02'),
+(40, 20, 6, '2025-10-26', 'activo', '2025-10-26 22:05:47'),
+(41, 20, 10, '2025-10-26', 'activo', '2025-10-26 22:07:28'),
+(42, 20, 5, '2025-10-26', 'activo', '2025-10-26 22:07:35');
 
 -- --------------------------------------------------------
 
@@ -206,7 +222,9 @@ INSERT INTO `profesores` (`id`, `usuario_id`, `nombre`, `apellido`, `telefono`, 
 (2, 3, 'Laura', 'Jiménez', '222333444', 'Calle Academia 321', '2018-03-05', 'activo', '2025-10-07 01:51:01', '2025-10-07 01:51:01'),
 (3, 13, 'María', 'García', '11111111', 'fgfg', '2024-01-15', 'activo', '2025-10-12 18:29:57', '2025-10-20 21:47:17'),
 (4, 14, 'paulo', 'londra', '0990122698', 'hsdjdshdsjdhd', '2025-10-01', 'activo', '2025-10-12 18:39:31', '2025-10-12 18:39:31'),
-(5, 16, 'Brandon', 'Mendez', '3353260100', '1ra calle 1-07 pastores', '1992-04-01', 'activo', '2025-10-13 15:43:58', '2025-10-13 15:43:58');
+(5, 16, 'Brandon', 'Mendez', '3353260100', '1ra calle 1-07 pastores', '1992-04-01', 'activo', '2025-10-13 15:43:58', '2025-10-13 15:43:58'),
+(7, 27, 'Maestro ', 'Prueba', '555-1234', 'Calle Principal 123', '2025-10-26', 'activo', '2025-10-26 22:00:43', '2025-10-26 22:00:43'),
+(8, 29, 'Lisbeth', 'dddd', '12345678', 'dssdsddsds', '2025-10-02', 'activo', '2025-10-26 22:06:20', '2025-10-26 22:06:20');
 
 -- --------------------------------------------------------
 
@@ -230,7 +248,6 @@ CREATE TABLE `usuarios` (
 
 INSERT INTO `usuarios` (`id`, `email`, `password`, `rol`, `estado`, `fecha_creacion`, `fecha_actualizacion`) VALUES
 (1, 'admin@colegio.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin', 'activo', '2025-10-07 01:51:00', '2025-10-07 01:51:00'),
-(26, 'admin@colegio.edu.ec', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin', 'activo', '2025-10-26 22:00:00', '2025-10-26 22:00:00'),
 (2, 'miguel@colegio.edu', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'profesor', 'activo', '2025-10-07 01:51:00', '2025-10-07 01:51:00'),
 (3, 'laura@colegio.edu', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'profesor', 'activo', '2025-10-07 01:51:00', '2025-10-07 01:51:00'),
 (4, 'ana@email.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'estudiante', 'inactivo', '2025-10-07 01:51:00', '2025-10-19 06:57:22'),
@@ -253,7 +270,10 @@ INSERT INTO `usuarios` (`id`, `email`, `password`, `rol`, `estado`, `fecha_creac
 (22, 'sostenes@colegio.com', '$2y$10$oyJQ3aVq8VY2uYw7mKJDpukMh5hBO77ZRCiNeewCL9JRKSn4.97nm', 'estudiante', 'activo', '2025-10-24 02:55:15', '2025-10-24 02:55:15'),
 (23, 'lupita@colegio.com', '$2y$10$xaN2HBtPlicwarQgFt0PFeh2lfaKGrHCKMk9H51XHQDKaCaS2wYiW', 'estudiante', 'activo', '2025-10-24 04:05:28', '2025-10-24 04:05:28'),
 (24, 'gerson@colegio.com', '$2y$10$dxpwrpLVv4vamQjr2IrlsurwcsQHGjDH55Q8SOC3dFQGcjITcoz/O', 'estudiante', 'activo', '2025-10-26 15:05:56', '2025-10-26 15:05:56'),
-(25, 'luis@colegio.com', '$2y$10$H7SpvCjlPX0mBEqXZWtN8OGc8hHhtOtTlZfZO8rnwyapD2H0vXEfy', 'estudiante', 'activo', '2025-10-26 16:31:41', '2025-10-26 16:31:41');
+(25, 'luis@colegio.com', '$2y$10$H7SpvCjlPX0mBEqXZWtN8OGc8hHhtOtTlZfZO8rnwyapD2H0vXEfy', 'estudiante', 'activo', '2025-10-26 16:31:41', '2025-10-26 16:31:41'),
+(27, 'maestro@colegio.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'profesor', 'activo', '2025-10-26 22:00:43', '2025-10-26 22:00:43'),
+(28, 'pruebastiven@gmail.com', '$2y$10$qSnCDkgl2rMdCqwVVzp2.Og1oALELNDe6ldlVBFi6OV8B5zT3Bwt.', 'estudiante', 'activo', '2025-10-26 22:04:04', '2025-10-26 22:04:04'),
+(29, 'lisbet@gmail.com', '$2y$10$J9KGkVlgzwgu31CBL6Gt0eN9pZWndaIAtaK35giHnmtGHHGCWdrqi', 'profesor', 'activo', '2025-10-26 22:06:20', '2025-10-26 22:06:20');
 
 -- --------------------------------------------------------
 
@@ -274,6 +294,24 @@ CREATE TABLE `vista_estudiantes_materias` (
 --
 -- Indexes for dumped tables
 --
+
+--
+-- Indexes for table `asistencia`
+--
+ALTER TABLE `asistencia`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `asistencia_unica` (`materia_id`,`estudiante_id`,`fecha_clase`),
+  ADD KEY `profesor_id` (`profesor_id`),
+  ADD KEY `idx_asistencia_materia_fecha` (`materia_id`,`fecha_clase`),
+  ADD KEY `idx_asistencia_estudiante` (`estudiante_id`);
+
+--
+-- Indexes for table `configuracion_materia`
+--
+ALTER TABLE `configuracion_materia`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `materia_año_unico` (`materia_id`,`año_academico`),
+  ADD KEY `idx_configuracion_materia` (`materia_id`);
 
 --
 -- Indexes for table `estudiantes`
@@ -321,16 +359,28 @@ ALTER TABLE `usuarios`
 --
 
 --
+-- AUTO_INCREMENT for table `asistencia`
+--
+ALTER TABLE `asistencia`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `configuracion_materia`
+--
+ALTER TABLE `configuracion_materia`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
 -- AUTO_INCREMENT for table `estudiantes`
 --
 ALTER TABLE `estudiantes`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
 
 --
 -- AUTO_INCREMENT for table `inscripciones`
 --
 ALTER TABLE `inscripciones`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=40;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=43;
 
 --
 -- AUTO_INCREMENT for table `materias`
@@ -342,13 +392,13 @@ ALTER TABLE `materias`
 -- AUTO_INCREMENT for table `profesores`
 --
 ALTER TABLE `profesores`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `usuarios`
 --
 ALTER TABLE `usuarios`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=26;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=30;
 
 -- --------------------------------------------------------
 
@@ -362,6 +412,20 @@ CREATE ALGORITHM=UNDEFINED DEFINER=`342080`@`%` SQL SECURITY DEFINER VIEW `vista
 --
 -- Constraints for dumped tables
 --
+
+--
+-- Constraints for table `asistencia`
+--
+ALTER TABLE `asistencia`
+  ADD CONSTRAINT `asistencia_ibfk_1` FOREIGN KEY (`materia_id`) REFERENCES `materias` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `asistencia_ibfk_2` FOREIGN KEY (`estudiante_id`) REFERENCES `estudiantes` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `asistencia_ibfk_3` FOREIGN KEY (`profesor_id`) REFERENCES `profesores` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `configuracion_materia`
+--
+ALTER TABLE `configuracion_materia`
+  ADD CONSTRAINT `configuracion_materia_ibfk_1` FOREIGN KEY (`materia_id`) REFERENCES `materias` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `estudiantes`
