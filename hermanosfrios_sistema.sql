@@ -230,6 +230,7 @@ CREATE TABLE `usuarios` (
 
 INSERT INTO `usuarios` (`id`, `email`, `password`, `rol`, `estado`, `fecha_creacion`, `fecha_actualizacion`) VALUES
 (1, 'admin@colegio.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin', 'activo', '2025-10-07 01:51:00', '2025-10-07 01:51:00'),
+(26, 'admin@colegio.edu.ec', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin', 'activo', '2025-10-26 22:00:00', '2025-10-26 22:00:00'),
 (2, 'miguel@colegio.edu', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'profesor', 'activo', '2025-10-07 01:51:00', '2025-10-07 01:51:00'),
 (3, 'laura@colegio.edu', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'profesor', 'activo', '2025-10-07 01:51:00', '2025-10-07 01:51:00'),
 (4, 'ana@email.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'estudiante', 'inactivo', '2025-10-07 01:51:00', '2025-10-19 06:57:22'),
