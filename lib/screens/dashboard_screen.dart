@@ -7,6 +7,11 @@ import 'students/student_enrollments_screen.dart';
 import 'teachers/teachers_screen.dart';
 import 'subjects/subjects_screen.dart';
 import 'enrollments/enrollments_screen.dart';
+import 'attendance/teacher_configuration_screen.dart';
+import 'attendance/take_attendance_screen.dart';
+import 'attendance/student_attendance_screen.dart';
+import '../models/subject_model.dart';
+import '../models/subject_configuration_model.dart';
 
 class DashboardScreen extends StatefulWidget {
   final User user;
@@ -66,6 +71,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
       icon: Icons.analytics,
       color: Colors.teal,
       roles: ['admin', 'profesor'], // Admin y Profesor pueden ver reportes
+    ),
+    DashboardItem(
+      title: 'Configurar Asistencia',
+      icon: Icons.settings,
+      color: Colors.blue,
+      roles: ['profesor'], // Solo profesores pueden configurar asistencia
+    ),
+    DashboardItem(
+      title: 'Tomar Asistencia',
+      icon: Icons.checklist,
+      color: Colors.green,
+      roles: ['profesor'], // Solo profesores pueden tomar asistencia
+    ),
+    DashboardItem(
+      title: 'Mi Asistencia',
+      icon: Icons.person_pin_circle,
+      color: Colors.purple,
+      roles: ['estudiante'], // Solo estudiantes pueden ver su asistencia
     ),
     DashboardItem(
       title: 'Pendientes',
@@ -139,6 +162,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
       case 'Mis Materias':
         screen = const StudentEnrollmentsScreen();
         break;
+      case 'Configurar Asistencia':
+        _navigateToSubjectSelection('Configurar Asistencia');
+        return;
+      case 'Tomar Asistencia':
+        _navigateToSubjectSelection('Tomar Asistencia');
+        return;
+      case 'Mi Asistencia':
+        _navigateToStudentSubjectSelection();
+        return;
       case 'Pendientes':
         // Mostrar contenido de pendientes para estudiantes
         setState(() {
@@ -792,6 +824,184 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ? _buildHomeContent()
           : _buildModuleContent(_menuItems[_selectedIndex - 1].title),
     );
+  }
+
+  // Función para navegar a selección de materia (profesores)
+  void _navigateToSubjectSelection(String action) async {
+    try {
+      // Aquí deberías cargar las materias del profesor desde la API
+      // Por ahora usamos un ejemplo con materias hardcodeadas
+      final List<Subject> teacherSubjects = [
+        Subject(
+          id: '1',
+          name: 'Matemáticas',
+          grade: '1°',
+          section: 'A',
+          teacherName: 'Prof. García',
+          isActive: true,
+          academicYear: DateTime.now().year.toString(),
+        ),
+        Subject(
+          id: '2',
+          name: 'Ciencias',
+          grade: '1°',
+          section: 'A',
+          teacherName: 'Prof. García',
+          isActive: true,
+          academicYear: DateTime.now().year.toString(),
+        ),
+      ];
+
+      if (teacherSubjects.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No tienes materias asignadas')),
+        );
+        return;
+      }
+
+      final selectedSubject = await showDialog<Subject>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('Seleccionar Materia - $action'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: teacherSubjects.length,
+              itemBuilder: (context, index) {
+                final subject = teacherSubjects[index];
+                return ListTile(
+                  leading: const Icon(Icons.book),
+                  title: Text(subject.name),
+                  subtitle: Text('${subject.grade} ${subject.section}'),
+                  onTap: () => Navigator.pop(context, subject),
+                );
+              },
+            ),
+          ),
+        ),
+      );
+
+      if (selectedSubject != null) {
+        if (action == 'Configurar Asistencia') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => TeacherConfigurationScreen(subject: selectedSubject),
+            ),
+          );
+        } else if (action == 'Tomar Asistencia') {
+          // Aquí necesitarías obtener la configuración de la materia
+          // Por ahora creamos una configuración temporal
+          final config = SubjectConfiguration(
+            id: 1,
+            subjectId: int.parse(selectedSubject.id!),
+            teacherId: widget.user.id!,
+            academicYear: DateTime.now().year.toString(),
+            startDate: DateTime.now(),
+            endDate: DateTime.now().add(const Duration(days: 120)),
+            classDays: ['lunes', 'miercoles', 'viernes'],
+            classTime: '08:00',
+            attendanceGoal: 80,
+          );
+
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => TakeAttendanceScreen(configuration: config),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
+  }
+
+  // Función para navegar a selección de materia (estudiantes)
+  void _navigateToStudentSubjectSelection() async {
+    try {
+      // Aquí deberías cargar las materias del estudiante desde la API
+      // Por ahora usamos un ejemplo con materias hardcodeadas
+      final List<Subject> studentSubjects = [
+        Subject(
+          id: '1',
+          name: 'Matemáticas',
+          grade: '1°',
+          section: 'A',
+          teacherName: 'Prof. García',
+          isActive: true,
+          academicYear: DateTime.now().year.toString(),
+        ),
+        Subject(
+          id: '2',
+          name: 'Ciencias',
+          grade: '1°',
+          section: 'A',
+          teacherName: 'Prof. López',
+          isActive: true,
+          academicYear: DateTime.now().year.toString(),
+        ),
+      ];
+
+      if (studentSubjects.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No estás inscrito en ninguna materia')),
+        );
+        return;
+      }
+
+      final selectedSubject = await showDialog<Subject>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Seleccionar Materia'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: studentSubjects.length,
+              itemBuilder: (context, index) {
+                final subject = studentSubjects[index];
+                return ListTile(
+                  leading: const Icon(Icons.book),
+                  title: Text(subject.name),
+                  subtitle: Text('${subject.grade} ${subject.section}'),
+                  onTap: () => Navigator.pop(context, subject),
+                );
+              },
+            ),
+          ),
+        ),
+      );
+
+      if (selectedSubject != null) {
+        // Crear configuración temporal para mostrar la asistencia del estudiante
+        final config = SubjectConfiguration(
+          id: 1,
+          subjectId: int.parse(selectedSubject.id!),
+          teacherId: 1, // ID del profesor
+          academicYear: DateTime.now().year.toString(),
+          startDate: DateTime.now(),
+          endDate: DateTime.now().add(const Duration(days: 120)),
+          classDays: ['lunes', 'miercoles', 'viernes'],
+          classTime: '08:00',
+          attendanceGoal: 80,
+        );
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => StudentAttendanceScreen(configuration: config),
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
   }
 }
 

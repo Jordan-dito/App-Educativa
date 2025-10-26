@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: mysql-hermanosfrios.alwaysdata.net
--- Generation Time: Oct 25, 2025 at 02:28 AM
+-- Generation Time: Oct 26, 2025 at 09:30 PM
 -- Server version: 10.11.14-MariaDB
 -- PHP Version: 7.4.33
 
@@ -20,6 +20,36 @@ SET time_zone = "+00:00";
 --
 -- Database: `hermanosfrios_sistema`
 --
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `asistencia`
+--
+
+CREATE TABLE `asistencia` (
+  `materia_id` int(11) DEFAULT NULL,
+  `estudiante_id` int(11) DEFAULT NULL,
+  `fecha_clase` date DEFAULT NULL,
+  `estado` enum('presente','ausente','tardanza') DEFAULT NULL,
+  `profesor_id` int(11) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `configuracion_materia`
+--
+
+CREATE TABLE `configuracion_materia` (
+  `materia_id` int(11) DEFAULT NULL,
+  `año_academico` year(4) DEFAULT NULL,
+  `fecha_inicio` date DEFAULT NULL,
+  `fecha_fin` date DEFAULT NULL,
+  `dias_clase` varchar(50) DEFAULT NULL,
+  `hora_clase` time DEFAULT NULL,
+  `meta_asistencia` decimal(5,2) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -62,7 +92,9 @@ INSERT INTO `estudiantes` (`id`, `usuario_id`, `nombre`, `apellido`, `grado`, `s
 (14, 20, 'fernando', 'chali', '3°', 'A', '30828253', 'los llanos', '2015-10-26', 'activo', '2025-10-23 18:18:23', '2025-10-23 18:18:23'),
 (15, 21, 'fabricio', 'chali', '3°', 'B', '59004008', 'jocotenango los llanos', '2010-10-26', 'activo', '2025-10-24 02:41:09', '2025-10-24 02:41:09'),
 (16, 22, 'sostenes', 'chali', '3°', 'B', '30828283', 'jocotenango', '2009-10-26', 'activo', '2025-10-24 02:55:15', '2025-10-24 02:55:15'),
-(17, 23, 'lupita', 'mutx', '2°', 'A', '30828253', 'victorias', '2010-04-14', 'activo', '2025-10-24 04:05:28', '2025-10-24 04:05:28');
+(17, 23, 'lupita', 'mutx', '2°', 'A', '30828253', 'victorias', '2010-04-14', 'activo', '2025-10-24 04:05:28', '2025-10-24 04:05:28'),
+(18, 24, 'gerson', 'sec', '3°', 'A', '33008649', 'sumpango', '2013-10-29', 'activo', '2025-10-26 15:05:56', '2025-10-26 15:05:56'),
+(19, 25, 'luis', 'angel', '3°', 'B', '78945645', 'los llanos', '2014-10-23', 'activo', '2025-10-26 16:31:41', '2025-10-26 16:31:41');
 
 -- --------------------------------------------------------
 
@@ -84,20 +116,31 @@ CREATE TABLE `inscripciones` (
 --
 
 INSERT INTO `inscripciones` (`id`, `estudiante_id`, `materia_id`, `fecha_inscripcion`, `estado`, `fecha_creacion`) VALUES
-(4, 11, 3, '2025-10-23', 'activo', '2025-10-23 06:31:30'),
-(5, 2, 3, '2025-10-23', 'activo', '2025-10-23 06:33:51'),
-(6, 12, 2, '2025-10-23', 'activo', '2025-10-23 07:09:32'),
-(7, 10, 2, '2025-10-23', 'activo', '2025-10-23 16:48:28'),
-(8, 10, 3, '2025-10-23', 'activo', '2025-10-23 16:53:07'),
-(9, 14, 3, '2025-10-23', 'activo', '2025-10-23 18:19:03'),
-(10, 14, 2, '2025-10-23', 'activo', '2025-10-23 18:19:51'),
-(11, 15, 2, '2025-10-24', 'activo', '2025-10-24 02:41:48'),
+(4, 11, 3, '2025-10-23', 'inactivo', '2025-10-23 06:31:30'),
+(5, 2, 3, '2025-10-23', 'inactivo', '2025-10-23 06:33:51'),
+(6, 12, 2, '2025-10-23', 'inactivo', '2025-10-23 07:09:32'),
+(7, 10, 2, '2025-10-23', 'inactivo', '2025-10-23 16:48:28'),
+(8, 10, 3, '2025-10-23', 'inactivo', '2025-10-23 16:53:07'),
+(9, 14, 3, '2025-10-23', 'inactivo', '2025-10-23 18:19:03'),
+(10, 14, 2, '2025-10-23', 'inactivo', '2025-10-23 18:19:51'),
+(11, 15, 2, '2025-10-24', 'inactivo', '2025-10-24 02:41:48'),
 (12, 15, 3, '2025-10-24', 'activo', '2025-10-24 02:42:18'),
 (13, 16, 2, '2025-10-24', 'activo', '2025-10-24 02:55:58'),
 (14, 16, 3, '2025-10-24', 'activo', '2025-10-24 02:56:13'),
 (15, 16, 5, '2025-10-24', 'activo', '2025-10-24 03:57:48'),
-(16, 15, 5, '2025-10-24', 'activo', '2025-10-24 04:01:36'),
-(17, 17, 3, '2025-10-24', 'activo', '2025-10-24 04:12:01');
+(16, 15, 5, '2025-10-24', 'inactivo', '2025-10-24 04:01:36'),
+(17, 17, 3, '2025-10-24', 'inactivo', '2025-10-24 04:12:01'),
+(18, 12, 3, '2025-10-25', 'inactivo', '2025-10-25 00:56:08'),
+(19, 10, 10, '2025-10-25', 'activo', '2025-10-25 17:43:21'),
+(20, 10, 5, '2025-10-25', 'activo', '2025-10-25 17:45:03'),
+(21, 10, 8, '2025-10-25', 'activo', '2025-10-25 17:45:11'),
+(25, 10, 9, '2025-10-25', 'activo', '2025-10-25 17:45:36'),
+(29, 10, 6, '2025-10-25', 'activo', '2025-10-25 17:46:11'),
+(35, 10, 11, '2025-10-25', 'activo', '2025-10-25 17:48:51'),
+(36, 19, 11, '2025-10-26', 'activo', '2025-10-26 16:32:56'),
+(37, 19, 6, '2025-10-26', 'activo', '2025-10-26 16:38:19'),
+(38, 19, 5, '2025-10-26', 'activo', '2025-10-26 16:38:56'),
+(39, 16, 12, '2025-10-26', 'activo', '2025-10-26 16:45:02');
 
 -- --------------------------------------------------------
 
@@ -129,7 +172,11 @@ INSERT INTO `materias` (`id`, `nombre`, `grado`, `seccion`, `profesor_id`, `año
 (5, 'ciencias naturales', '3°', 'A', 5, '2025', 'activo', '2025-10-24 03:56:21', '2025-10-24 03:56:21'),
 (6, 'matemática', '3°', 'A', 5, '2025', 'activo', '2025-10-24 04:06:41', '2025-10-24 04:06:41'),
 (7, 'matema', '3°', 'A', 5, '2025', 'inactivo', '2025-10-24 04:07:02', '2025-10-24 04:07:08'),
-(8, 'ingles', '3°', 'A', 5, '2025', 'activo', '2025-10-24 04:07:49', '2025-10-24 04:07:49');
+(8, 'ingles', '3°', 'A', 5, '2025', 'activo', '2025-10-24 04:07:49', '2025-10-24 04:07:49'),
+(9, 'prueba', '1°', 'A', 2, '2025', 'activo', '2025-10-25 00:49:51', '2025-10-25 00:49:51'),
+(10, 'gastonomia', '1°', 'A', 5, '2025', 'activo', '2025-10-25 17:36:44', '2025-10-25 17:36:44'),
+(11, 'contabilidad', '3°', 'C', 2, '2025', 'activo', '2025-10-25 17:48:23', '2025-10-25 17:48:23'),
+(12, 'sociales', '3°', 'C', 2, '2025', 'activo', '2025-10-26 16:43:09', '2025-10-26 16:43:09');
 
 -- --------------------------------------------------------
 
@@ -203,7 +250,9 @@ INSERT INTO `usuarios` (`id`, `email`, `password`, `rol`, `estado`, `fecha_creac
 (20, 'fernando@colegio.com', '$2y$10$Xh8s63rNNR9Qz1v6Se4XDuoNQDo42kPh/HDSZlGNnUBLqnavL0Llq', 'estudiante', 'activo', '2025-10-23 18:18:23', '2025-10-23 18:18:23'),
 (21, 'Fabricio@colegio.com', '$2y$10$HtJ7sPRrJjnF0YSiJbPgCuRpcULALfsea9JTWGOc534klq6EvMxWK', 'estudiante', 'activo', '2025-10-24 02:41:09', '2025-10-24 02:41:09'),
 (22, 'sostenes@colegio.com', '$2y$10$oyJQ3aVq8VY2uYw7mKJDpukMh5hBO77ZRCiNeewCL9JRKSn4.97nm', 'estudiante', 'activo', '2025-10-24 02:55:15', '2025-10-24 02:55:15'),
-(23, 'lupita@colegio.com', '$2y$10$xaN2HBtPlicwarQgFt0PFeh2lfaKGrHCKMk9H51XHQDKaCaS2wYiW', 'estudiante', 'activo', '2025-10-24 04:05:28', '2025-10-24 04:05:28');
+(23, 'lupita@colegio.com', '$2y$10$xaN2HBtPlicwarQgFt0PFeh2lfaKGrHCKMk9H51XHQDKaCaS2wYiW', 'estudiante', 'activo', '2025-10-24 04:05:28', '2025-10-24 04:05:28'),
+(24, 'gerson@colegio.com', '$2y$10$dxpwrpLVv4vamQjr2IrlsurwcsQHGjDH55Q8SOC3dFQGcjITcoz/O', 'estudiante', 'activo', '2025-10-26 15:05:56', '2025-10-26 15:05:56'),
+(25, 'luis@colegio.com', '$2y$10$H7SpvCjlPX0mBEqXZWtN8OGc8hHhtOtTlZfZO8rnwyapD2H0vXEfy', 'estudiante', 'activo', '2025-10-26 16:31:41', '2025-10-26 16:31:41');
 
 -- --------------------------------------------------------
 
@@ -274,19 +323,19 @@ ALTER TABLE `usuarios`
 -- AUTO_INCREMENT for table `estudiantes`
 --
 ALTER TABLE `estudiantes`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
 
 --
 -- AUTO_INCREMENT for table `inscripciones`
 --
 ALTER TABLE `inscripciones`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=40;
 
 --
 -- AUTO_INCREMENT for table `materias`
 --
 ALTER TABLE `materias`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT for table `profesores`
@@ -298,7 +347,7 @@ ALTER TABLE `profesores`
 -- AUTO_INCREMENT for table `usuarios`
 --
 ALTER TABLE `usuarios`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=26;
 
 -- --------------------------------------------------------
 
