@@ -254,11 +254,15 @@ class _StudentSubjectEnrollmentScreenState
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  Text(
-                    'Grado: ${_currentUser!.id == 18 ? '1°' : (_currentUser!.grado ?? 'No especificado')}',
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 14,
+                  Flexible(
+                    child: Text(
+                      'Grado: ${_currentUser!.id == 18 ? '1°' : (_currentUser!.grado ?? 'No especificado')}',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 14,
+                      ),
+                      textAlign: TextAlign.center,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
@@ -372,6 +376,8 @@ class _StudentSubjectEnrollmentScreenState
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 2,
                       ),
                       if (subject.teacherName?.isNotEmpty == true)
                         Text(
@@ -380,6 +386,8 @@ class _StudentSubjectEnrollmentScreenState
                             color: Colors.grey[600],
                             fontSize: 14,
                           ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
                         ),
                     ],
                   ),
