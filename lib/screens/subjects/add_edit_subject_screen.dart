@@ -100,8 +100,30 @@ class _AddEditSubjectScreenState extends State<AddEditSubjectScreen> {
     }
   }
 
+  /// Verifica si todos los campos requeridos están completos
+  bool _canSave() {
+    final nameValid = _nameController.text.trim().isNotEmpty;
+    final gradeValid = _selectedGrade.isNotEmpty;
+    final sectionValid = _selectedSection.isNotEmpty;
+    final academicYearValid =
+        _academicYear.isNotEmpty && int.tryParse(_academicYear) != null;
+    final teacherAssigned = _selectedTeacherId != null;
+
+    return nameValid &&
+        gradeValid &&
+        sectionValid &&
+        academicYearValid &&
+        teacherAssigned;
+  }
+
   Future<void> _saveSubject() async {
     if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    // Validar que el profesor esté asignado
+    if (_selectedTeacherId == null) {
+      _showErrorMessage('Debe asignar un profesor a la materia');
       return;
     }
 
@@ -203,6 +225,8 @@ class _AddEditSubjectScreenState extends State<AddEditSubjectScreen> {
                           }
                           return null;
                         },
+                        onChanged: (_) => setState(
+                            () {}), // Actualizar estado para habilitar/deshabilitar botón
                       ),
                       const SizedBox(height: 16),
                       Row(
@@ -223,6 +247,12 @@ class _AddEditSubjectScreenState extends State<AddEditSubjectScreen> {
                               onChanged: (value) {
                                 setState(() => _selectedGrade = value!);
                               },
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Seleccione un grado';
+                                }
+                                return null;
+                              },
                             ),
                           ),
                           const SizedBox(width: 16),
@@ -242,6 +272,12 @@ class _AddEditSubjectScreenState extends State<AddEditSubjectScreen> {
                               onChanged: (value) {
                                 setState(() => _selectedSection = value!);
                               },
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Seleccione una sección';
+                                }
+                                return null;
+                              },
                             ),
                           ),
                         ],
@@ -255,7 +291,9 @@ class _AddEditSubjectScreenState extends State<AddEditSubjectScreen> {
                         ),
                         keyboardType: TextInputType.number,
                         onChanged: (value) {
-                          _academicYear = value;
+                          setState(() {
+                            _academicYear = value;
+                          });
                         },
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
@@ -290,7 +328,7 @@ class _AddEditSubjectScreenState extends State<AddEditSubjectScreen> {
                       DropdownButtonFormField<String>(
                         value: _selectedTeacherId,
                         decoration: const InputDecoration(
-                          labelText: 'Profesor Asignado',
+                          labelText: 'Profesor Asignado *',
                           border: OutlineInputBorder(),
                         ),
                         items: [
@@ -317,6 +355,12 @@ class _AddEditSubjectScreenState extends State<AddEditSubjectScreen> {
                               _selectedTeacherName = null;
                             }
                           });
+                        },
+                        validator: (value) {
+                          if (value == null) {
+                            return 'Debe asignar un profesor';
+                          }
+                          return null;
                         },
                       ),
                       const SizedBox(height: 16),
@@ -349,10 +393,13 @@ class _AddEditSubjectScreenState extends State<AddEditSubjectScreen> {
                   const SizedBox(width: 16),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: _isLoading ? null : _saveSubject,
+                      onPressed:
+                          (_isLoading || !_canSave()) ? null : _saveSubject,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.purple,
                         foregroundColor: Colors.white,
+                        disabledBackgroundColor: Colors.grey[300],
+                        disabledForegroundColor: Colors.grey[600],
                       ),
                       child: _isLoading
                           ? const SizedBox(
