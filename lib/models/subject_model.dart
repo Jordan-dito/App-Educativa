@@ -42,13 +42,17 @@ class Subject {
   factory Subject.fromJson(Map<String, dynamic> json) {
     return Subject(
       id: json['materia_id']?.toString() ?? json['id']?.toString(),
-      name: json['nombre'] ?? json['name'] ?? '',
+      // Manejar diferentes nombres de campo según el endpoint usado
+      name: json['nombre_materia'] ?? json['nombre'] ?? json['name'] ?? '',
       grade: json['grado'] ?? json['grade'] ?? '',
       section: json['seccion'] ?? json['section'] ?? '',
       teacherId: json['profesor_id']?.toString() ?? json['teacherId']?.toString(),
-      teacherName: json['profesor_nombre'] != null && json['profesor_apellido'] != null 
-          ? '${json['profesor_nombre']} ${json['profesor_apellido']}'
-          : json['profesor_nombre'] ?? json['teacherName'],
+      // Manejar nombre del profesor desde vista_estudiantes_materias
+      teacherName: json['nombre_profesor'] ?? 
+          (json['profesor_nombre'] != null && json['profesor_apellido'] != null 
+              ? '${json['profesor_nombre']} ${json['profesor_apellido']}'
+              : json['profesor_nombre']) ?? 
+          json['teacherName'],
       academicYear: json['año_academico']?.toString() ?? json['academicYear'] ?? DateTime.now().year.toString(),
       isActive: (json['estado'] ?? json['activo'] ?? json['isActive']) == 'activo' || 
                 (json['estado'] ?? json['activo'] ?? json['isActive']) == 1 || 

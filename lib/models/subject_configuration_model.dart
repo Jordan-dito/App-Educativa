@@ -31,19 +31,53 @@ class SubjectConfiguration {
     if (json['dias_clase'] != null) {
       if (json['dias_clase'] is String) {
         // Si viene como string separado por comas
-        classDays = json['dias_clase'].split(',').map((e) => e.trim()).toList();
+        final diasStr = json['dias_clase'] as String;
+        if (diasStr.isNotEmpty) {
+          classDays = diasStr
+              .split(',')
+              .map((e) => e.trim())
+              .where((e) => e.isNotEmpty)
+              .toList();
+        }
       } else if (json['dias_clase'] is List) {
         // Si viene como array
-        classDays = List<String>.from(json['dias_clase']);
+        final diasList = json['dias_clase'] as List;
+        classDays = diasList
+            .map((e) => e.toString().trim())
+            .where((e) => e.isNotEmpty)
+            .toList();
       }
     } else if (json['class_days'] != null) {
-      classDays = List<String>.from(json['class_days']);
+      if (json['class_days'] is String) {
+        final diasStr = json['class_days'] as String;
+        if (diasStr.isNotEmpty) {
+          classDays = diasStr
+              .split(',')
+              .map((e) => e.trim())
+              .where((e) => e.isNotEmpty)
+              .toList();
+        }
+      } else if (json['class_days'] is List) {
+        final diasList = json['class_days'] as List;
+        classDays = diasList
+            .map((e) => e.toString().trim())
+            .where((e) => e.isNotEmpty)
+            .toList();
+      }
     }
 
     return SubjectConfiguration(
       id: json['id'] ?? json['configuracion_id'],
-      subjectId: json['materia_id'] ?? json['subject_id'],
-      teacherId: json['profesor_id'] ?? json['teacher_id'],
+      subjectId: json['materia_id'] ?? json['subject_id'] ?? 0,
+      teacherId: json['profesor_id'] != null
+          ? (json['profesor_id'] is int
+              ? json['profesor_id']
+              : int.tryParse(json['profesor_id'].toString()) ?? 0)
+          : (json['teacher_id'] != null
+              ? (json['teacher_id'] is int
+                  ? json['teacher_id']
+                  : int.tryParse(json['teacher_id'].toString()) ?? 0)
+              : 0), // Se asignará desde el servicio si es 0
       academicYear: json['año_academico']?.toString() ??
           json['academic_year']?.toString() ??
           DateTime.now().year.toString(),
@@ -51,9 +85,23 @@ class SubjectConfiguration {
       endDate: DateTime.parse(json['fecha_fin'] ?? json['end_date']),
       classDays: classDays,
       classTime: json['hora_clase'] ?? json['class_time'],
-      attendanceGoal: json['meta_asistencia']?.toInt() ??
-          json['attendance_goal']?.toInt() ??
-          80,
+      attendanceGoal: json['meta_asistencia'] != null
+          ? (json['meta_asistencia'] is int
+              ? json['meta_asistencia']
+              : (json['meta_asistencia'] is double
+                  ? json['meta_asistencia'].toInt()
+                  : double.tryParse(json['meta_asistencia'].toString())
+                          ?.toInt() ??
+                      80))
+          : (json['attendance_goal'] != null
+              ? (json['attendance_goal'] is int
+                  ? json['attendance_goal']
+                  : (json['attendance_goal'] is double
+                      ? json['attendance_goal'].toInt()
+                      : double.tryParse(json['attendance_goal'].toString())
+                              ?.toInt() ??
+                          80))
+              : 80),
       createdAt: json['fecha_creacion'] != null
           ? DateTime.parse(json['fecha_creacion'])
           : json['created_at'] != null

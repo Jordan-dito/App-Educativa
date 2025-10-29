@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: mysql-hermanosfrios.alwaysdata.net
--- Generation Time: Oct 27, 2025 at 12:02 AM
+-- Generation Time: Oct 28, 2025 at 12:57 AM
 -- Server version: 10.11.14-MariaDB
 -- PHP Version: 7.4.33
 
@@ -61,7 +61,8 @@ CREATE TABLE `configuracion_materia` (
 --
 
 INSERT INTO `configuracion_materia` (`id`, `materia_id`, `año_academico`, `fecha_inicio`, `fecha_fin`, `dias_clase`, `hora_clase`, `meta_asistencia`, `estado`, `fecha_creacion`) VALUES
-(1, 1, '2025', '2025-10-26', '2026-02-23', 'viernes,lunes', '05:00:00', 80.00, 'activo', '2025-10-26 22:52:50');
+(1, 1, '2025', '2025-10-27', '2026-02-24', 'lunes,martes,miercoles,jueves,viernes', '08:00:00', 60.00, 'activo', '2025-10-26 22:52:50'),
+(2, 2, '2025', '2025-10-26', '2026-02-23', 'lunes,martes', '09:00:00', 80.00, 'activo', '2025-10-26 23:06:19');
 
 -- --------------------------------------------------------
 
@@ -156,7 +157,8 @@ INSERT INTO `inscripciones` (`id`, `estudiante_id`, `materia_id`, `fecha_inscrip
 (39, 16, 12, '2025-10-26', 'activo', '2025-10-26 16:45:02'),
 (40, 20, 6, '2025-10-26', 'activo', '2025-10-26 22:05:47'),
 (41, 20, 10, '2025-10-26', 'activo', '2025-10-26 22:07:28'),
-(42, 20, 5, '2025-10-26', 'activo', '2025-10-26 22:07:35');
+(42, 20, 5, '2025-10-26', 'activo', '2025-10-26 22:07:35'),
+(43, 10, 12, '2025-10-27', 'activo', '2025-10-27 15:57:55');
 
 -- --------------------------------------------------------
 
@@ -190,7 +192,7 @@ INSERT INTO `materias` (`id`, `nombre`, `grado`, `seccion`, `profesor_id`, `año
 (7, 'matema', '3°', 'A', 5, '2025', 'inactivo', '2025-10-24 04:07:02', '2025-10-24 04:07:08'),
 (8, 'ingles', '3°', 'A', 5, '2025', 'activo', '2025-10-24 04:07:49', '2025-10-24 04:07:49'),
 (9, 'prueba', '1°', 'A', 2, '2025', 'activo', '2025-10-25 00:49:51', '2025-10-25 00:49:51'),
-(10, 'gastonomia', '1°', 'A', 5, '2025', 'activo', '2025-10-25 17:36:44', '2025-10-25 17:36:44'),
+(10, 'gastonomia', '1°', 'A', 5, '2025', 'activo', '2025-10-25 17:36:44', '2025-10-27 15:46:52'),
 (11, 'contabilidad', '3°', 'C', 2, '2025', 'activo', '2025-10-25 17:48:23', '2025-10-25 17:48:23'),
 (12, 'sociales', '3°', 'C', 2, '2025', 'activo', '2025-10-26 16:43:09', '2025-10-26 16:43:09');
 
@@ -368,7 +370,7 @@ ALTER TABLE `asistencia`
 -- AUTO_INCREMENT for table `configuracion_materia`
 --
 ALTER TABLE `configuracion_materia`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `estudiantes`
@@ -380,7 +382,7 @@ ALTER TABLE `estudiantes`
 -- AUTO_INCREMENT for table `inscripciones`
 --
 ALTER TABLE `inscripciones`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=43;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=44;
 
 --
 -- AUTO_INCREMENT for table `materias`

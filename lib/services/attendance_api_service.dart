@@ -50,7 +50,7 @@ class AttendanceApiService {
 
   /// Obtener configuración de materia por ID y año académico
   Future<SubjectConfiguration?> getSubjectConfiguration(
-      int materiaId, int year) async {
+      int materiaId, int year, {int? fallbackTeacherId}) async {
     try {
       final response = await http.get(
         Uri.parse(
@@ -68,12 +68,20 @@ class AttendanceApiService {
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
         if (responseData['success'] == true && responseData['data'] != null) {
-          return SubjectConfiguration.fromJson(responseData['data']);
+          final data = responseData['data'] as Map<String, dynamic>;
+          
+          // Si no viene profesor_id y tenemos un fallback, inyectarlo
+          if ((data['profesor_id'] == null || data['profesor_id'] == 0) && fallbackTeacherId != null) {
+            data['profesor_id'] = fallbackTeacherId;
+            print('🔧 DEBUG AttendanceApiService.getSubjectConfiguration: Inyectando profesor_id = $fallbackTeacherId');
+          }
+          
+          return SubjectConfiguration.fromJson(data);
         }
       }
       return null;
     } catch (e) {
-      print('Error getting subject configuration: $e');
+      print('❌ ERROR AttendanceApiService.getSubjectConfiguration: $e');
       return null;
     }
   }
@@ -228,25 +236,89 @@ class AttendanceApiService {
 
   /// Obtener registros de asistencia de una materia en una fecha específica
   Future<List<AttendanceRecord>> getAttendanceByDate(
-      int subjectConfigId, DateTime date) async {
+      int materiaId, DateTime date) async {
     try {
       final dateStr = date.toIso8601String().split('T')[0];
+      
+      // Usar endpoint PHP para obtener asistencia
       final response = await http.get(
         Uri.parse(
-            '$_baseUrl/attendance-records/subject/$subjectConfigId/date/$dateStr'),
+            '$_baseUrl/api/asistencia.php?action=listar&materia_id=$materiaId&fecha_clase=$dateStr'),
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
       );
 
+      print('🔧 DEBUG AttendanceApiService.getAttendanceByDate:');
+      print('   URL: ${response.request?.url}');
+      print('   Status code: ${response.statusCode}');
+      print('   Response body: ${response.body}');
+
       if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
-        return data.map((json) => AttendanceRecord.fromJson(json)).toList();
+        final responseData = jsonDecode(response.body);
+        if (responseData is Map<String, dynamic> && responseData['success'] == true) {
+          final data = responseData['data'];
+          
+          print('🔧 DEBUG AttendanceApiService.getAttendanceByDate: data type = ${data.runtimeType}');
+          
+          // El endpoint puede retornar:
+          // Opción 1: data es directamente una lista: { "data": [...] }
+          // Opción 2: data es un objeto con "asistencias": { "data": { "asistencias": [...] } }
+          
+          List<dynamic> asistenciasList = [];
+          
+          if (data is List) {
+            // Opción 1: data es directamente una lista
+            asistenciasList = data;
+            print('🔧 DEBUG AttendanceApiService.getAttendanceByDate: data es List, ${asistenciasList.length} items');
+          } else if (data is Map<String, dynamic>) {
+            // Opción 2: data es un objeto, buscar la lista en "asistencias"
+            if (data['asistencias'] != null && data['asistencias'] is List) {
+              asistenciasList = data['asistencias'] as List;
+              print('🔧 DEBUG AttendanceApiService.getAttendanceByDate: encontrado data["asistencias"], ${asistenciasList.length} items');
+            } else {
+              print('⚠️ DEBUG AttendanceApiService.getAttendanceByDate: data es Map pero no tiene "asistencias" o no es List');
+              print('   data keys: ${data.keys.toList()}');
+            }
+          }
+          
+          if (asistenciasList.isNotEmpty) {
+            // Convertir los datos del formato PHP al formato AttendanceRecord
+            return asistenciasList.map((json) {
+              // Convertir el formato PHP al formato esperado por AttendanceRecord
+              return AttendanceRecord(
+                subjectConfigurationId: materiaId,
+                studentId: json['estudiante_id'] ?? json['estudianteId'] ?? 0,
+                classDate: DateTime.parse(json['fecha_clase'] ?? json['fechaClase'] ?? dateStr),
+                status: _parseAttendanceStatus(json['estado'] ?? json['status'] ?? 'ausente'),
+              );
+            }).toList();
+          } else {
+            print('⚠️ DEBUG AttendanceApiService.getAttendanceByDate: asistenciasList está vacío');
+          }
+        }
       }
       return [];
     } catch (e) {
-      print('Error getting attendance by date: $e');
+      print('❌ ERROR AttendanceApiService.getAttendanceByDate: $e');
       return [];
+    }
+  }
+
+  /// Convertir string de estado PHP al enum AttendanceStatus
+  AttendanceStatus _parseAttendanceStatus(String estado) {
+    switch (estado.toLowerCase()) {
+      case 'presente':
+        return AttendanceStatus.present;
+      case 'ausente':
+        return AttendanceStatus.absent;
+      case 'tardanza':
+        return AttendanceStatus.late;
+      case 'justificado':
+        return AttendanceStatus.justified;
+      default:
+        return AttendanceStatus.absent;
     }
   }
 
@@ -297,20 +369,88 @@ class AttendanceApiService {
   }
 
   /// Verificar si ya se tomó asistencia en una fecha específica
-  Future<bool> hasAttendanceForDate(int subjectConfigId, DateTime date) async {
+  Future<bool> hasAttendanceForDate(int materiaId, DateTime date) async {
+    try {
+      final dateStr = date.toIso8601String().split('T')[0];
+      
+      // Usar endpoint PHP para verificar asistencia
+      final response = await http.get(
+        Uri.parse(
+            '$_baseUrl/api/asistencia.php?action=verificar&materia_id=$materiaId&fecha_clase=$dateStr'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      );
+
+      print('🔧 DEBUG AttendanceApiService.hasAttendanceForDate:');
+      print('   URL: ${response.request?.url}');
+      print('   Status code: ${response.statusCode}');
+      print('   Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        try {
+          final responseData = jsonDecode(response.body);
+          if (responseData is Map<String, dynamic>) {
+            // El endpoint puede retornar: 
+            // { "success": true, "existe": true/false } (directo)
+            // O { "success": true, "data": { "existe": true/false } } (anidado)
+            final existe = responseData['existe'] ?? 
+                           (responseData['data'] != null && responseData['data'] is Map
+                               ? responseData['data']['existe'] 
+                               : null);
+            
+            final count = responseData['count'] ?? 
+                         (responseData['data'] != null && responseData['data'] is Map
+                             ? responseData['data']['total_registros'] 
+                             : null);
+            
+            print('🔧 DEBUG AttendanceApiService.hasAttendanceForDate parsed:');
+            print('   existe = $existe');
+            print('   count = $count');
+            
+            return existe == true || 
+                   (responseData['success'] == true && count != null && count > 0);
+          }
+          return false;
+        } catch (e) {
+          // Si no se puede parsear, verificar si hay datos
+          return response.body.isNotEmpty && !response.body.contains('"data":[]');
+        }
+      }
+      return false;
+    } catch (e) {
+      print('❌ ERROR AttendanceApiService.hasAttendanceForDate: $e');
+      // Si el endpoint no existe, intentar consultar directamente la lista
+      return await _hasAttendanceFallback(materiaId, date);
+    }
+  }
+
+  /// Método de respaldo para verificar asistencia consultando la lista
+  Future<bool> _hasAttendanceFallback(int materiaId, DateTime date) async {
     try {
       final dateStr = date.toIso8601String().split('T')[0];
       final response = await http.get(
         Uri.parse(
-            '$_baseUrl/attendance-records/subject/$subjectConfigId/date/$dateStr/exists'),
+            '$_baseUrl/api/asistencia.php?action=listar&materia_id=$materiaId&fecha_clase=$dateStr'),
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
       );
 
-      return response.statusCode == 200;
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+        if (responseData is Map<String, dynamic> && responseData['success'] == true) {
+          final data = responseData['data'];
+          if (data is List) {
+            return data.isNotEmpty;
+          }
+        }
+      }
+      return false;
     } catch (e) {
-      print('Error checking attendance for date: $e');
+      print('❌ ERROR AttendanceApiService._hasAttendanceFallback: $e');
       return false;
     }
   }
@@ -332,27 +472,64 @@ class AttendanceApiService {
         'asistencias': asistencias,
       };
 
+      final url = '$_baseUrl/api/asistencia.php?action=tomar';
+      
+      print('🔧 DEBUG AttendanceApiService.takeAttendance:');
+      print('   URL: $url');
+      print('   Request Data: ${jsonEncode(requestData)}');
+      print('   Asistencias count: ${asistencias.length}');
+
       final response = await http.post(
-        Uri.parse('$_baseUrl/api/asistencia.php?action=tomar'),
+        Uri.parse(url),
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
         body: jsonEncode(requestData),
       );
 
-      print('🔧 DEBUG AttendanceApiService.takeAttendance:');
-      print('   URL: ${response.request?.url}');
+      print('🔧 DEBUG AttendanceApiService.takeAttendance Response:');
       print('   Status code: ${response.statusCode}');
+      print('   Response headers: ${response.headers}');
       print('   Response body: ${response.body}');
 
-      if (response.statusCode == 200) {
-        final responseData = jsonDecode(response.body);
-        return responseData['success'] == true;
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        try {
+          final responseData = jsonDecode(response.body);
+          print('   ✅ Parsed response: $responseData');
+          
+          // Verificar si la respuesta indica éxito
+          if (responseData is Map<String, dynamic>) {
+            final success = responseData['success'] == true || 
+                           responseData['success'] == 1 ||
+                           responseData['status'] == 'success';
+            
+            if (success) {
+              print('   ✅ Asistencia guardada exitosamente');
+              return true;
+            } else {
+              print('   ⚠️ El servidor reportó error: ${responseData['message'] ?? 'Unknown error'}');
+              return false;
+            }
+          }
+          
+          // Si la respuesta no es un mapa, considerarla como éxito si el código es 200/201
+          return response.statusCode == 200 || response.statusCode == 201;
+        } catch (parseError) {
+          print('   ❌ Error parseando respuesta: $parseError');
+          print('   Response body (raw): ${response.body}');
+          // Si el código es 200 pero no podemos parsear, asumimos éxito
+          return response.statusCode == 200 || response.statusCode == 201;
+        }
+      } else {
+        print('   ❌ Error HTTP: ${response.statusCode}');
+        print('   Response body: ${response.body}');
+        return false;
       }
-
-      return false;
-    } catch (e) {
-      print('Error taking attendance: $e');
+    } catch (e, stackTrace) {
+      print('❌ ERROR AttendanceApiService.takeAttendance:');
+      print('   Exception: $e');
+      print('   Stack trace: $stackTrace');
       return false;
     }
   }

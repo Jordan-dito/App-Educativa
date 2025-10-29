@@ -27,68 +27,93 @@ class _TakeAttendanceScreenState extends State<TakeAttendanceScreen> {
   @override
   void initState() {
     super.initState();
-    _loadStudents();
-    _checkExistingAttendance();
+    _initializeAttendance();
   }
 
-  Future<void> _loadStudents() async {
+  /// Inicializa la pantalla: primero verifica asistencia existente, luego carga estudiantes
+  Future<void> _initializeAttendance() async {
     setState(() => _isLoading = true);
 
     try {
+      // Primero verificar si ya hay asistencia guardada
+      final hasAttendance = await _attendanceService.hasAttendanceForDate(
+        widget.configuration.subjectId,
+        _selectedDate,
+      );
+
+      print('🔧 DEBUG TakeAttendanceScreen: hasAttendance = $hasAttendance');
+
+      // Cargar estudiantes
+      await _loadStudents();
+
+      // Si hay asistencia guardada, cargarla DESPUÉS de cargar los estudiantes
+      if (hasAttendance) {
+        print(
+            '🔧 DEBUG TakeAttendanceScreen: Cargando asistencias existentes...');
+        await _loadExistingAttendance();
+      }
+    } catch (e) {
+      print('❌ ERROR TakeAttendanceScreen._initializeAttendance: $e');
+      _showErrorMessage('Error al inicializar asistencia: $e');
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _loadStudents() async {
+    try {
       final students = await _attendanceService
           .getInscribedStudents(widget.configuration.subjectId);
+
       setState(() {
         _students = students;
-        // Inicializar todos como ausentes por defecto
+        // Solo inicializar como ausentes si NO hay estados guardados previamente
+        // (esto evita sobrescribir asistencias ya cargadas)
         for (var student in students) {
           final idRaw = student['estudiante_id'] ?? student['id'];
           if (idRaw != null) {
             final id = idRaw is int ? idRaw : int.tryParse(idRaw.toString());
             if (id != null) {
-              _attendanceStatus[id] = AttendanceStatus.absent;
+              // Solo inicializar si no hay un estado guardado para este estudiante
+              if (!_attendanceStatus.containsKey(id)) {
+                _attendanceStatus[id] = AttendanceStatus.absent;
+              }
             }
           }
         }
       });
     } catch (e) {
       _showErrorMessage('Error al cargar estudiantes: $e');
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _checkExistingAttendance() async {
-    try {
-      final hasAttendance = await _attendanceService.hasAttendanceForDate(
-        widget.configuration.subjectId,
-        _selectedDate,
-      );
-
-      if (hasAttendance) {
-        _loadExistingAttendance();
-      }
-    } catch (e) {
-      print('Error checking existing attendance: $e');
     }
   }
 
   Future<void> _loadExistingAttendance() async {
     try {
+      print(
+          '🔧 DEBUG TakeAttendanceScreen._loadExistingAttendance: Cargando asistencias...');
+
       final records = await _attendanceService.getAttendanceByDate(
         widget.configuration.subjectId,
         _selectedDate,
       );
 
+      print(
+          '🔧 DEBUG TakeAttendanceScreen._loadExistingAttendance: ${records.length} registros encontrados');
+
       setState(() {
         for (var record in records) {
-          // studentId es required ahora, solo validamos que sea > 0
           if (record.studentId > 0) {
+            print(
+                '🔧 DEBUG TakeAttendanceScreen._loadExistingAttendance: Estudiante ${record.studentId} -> ${record.status}');
             _attendanceStatus[record.studentId] = record.status;
           }
         }
       });
+
+      print(
+          '🔧 DEBUG TakeAttendanceScreen._loadExistingAttendance: Estados cargados: $_attendanceStatus');
     } catch (e) {
-      print('Error loading existing attendance: $e');
+      print('❌ ERROR TakeAttendanceScreen._loadExistingAttendance: $e');
     }
   }
 
@@ -104,9 +129,11 @@ class _TakeAttendanceScreenState extends State<TakeAttendanceScreen> {
       setState(() {
         _selectedDate = picked;
         _attendanceStatus.clear();
+        _isLoading = true;
       });
-      _checkExistingAttendance();
-      _loadStudents();
+
+      // Cargar asistencia para la nueva fecha
+      await _initializeAttendance();
     }
   }
 
@@ -153,17 +180,37 @@ class _TakeAttendanceScreenState extends State<TakeAttendanceScreen> {
     setState(() => _isSaving = true);
 
     try {
-      final records = _attendanceStatus.entries.map((entry) {
-        return AttendanceRecord(
-          subjectConfigurationId: widget.configuration.subjectId,
-          studentId: entry.key,
-          classDate: _selectedDate,
-          status: entry.value,
-        );
+      // Convertir el estado de asistencia al formato esperado por el endpoint PHP
+      final asistencias = _attendanceStatus.entries.map((entry) {
+        String estado;
+        switch (entry.value) {
+          case AttendanceStatus.present:
+            estado = 'presente';
+            break;
+          case AttendanceStatus.absent:
+            estado = 'ausente';
+            break;
+          case AttendanceStatus.late:
+            estado = 'tardanza';
+            break;
+          case AttendanceStatus.justified:
+            estado = 'justificado'; // Si el backend lo soporta
+            break;
+        }
+
+        return {
+          'estudiante_id': entry.key,
+          'estado': estado,
+        };
       }).toList();
 
-      final success =
-          await _attendanceService.createMultipleAttendanceRecords(records);
+      // Usar el método takeAttendance que apunta al endpoint PHP correcto
+      final success = await _attendanceService.takeAttendance(
+        materiaId: widget.configuration.subjectId,
+        fechaClase: _selectedDate,
+        profesorId: widget.configuration.teacherId,
+        asistencias: asistencias,
+      );
 
       if (success) {
         _showSuccessMessage('Asistencia guardada exitosamente');
@@ -172,6 +219,7 @@ class _TakeAttendanceScreenState extends State<TakeAttendanceScreen> {
       }
     } catch (e) {
       _showErrorMessage('Error al guardar: $e');
+      print('❌ ERROR TakeAttendanceScreen._saveAttendance: $e');
     } finally {
       setState(() => _isSaving = false);
     }

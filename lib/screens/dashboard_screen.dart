@@ -12,6 +12,11 @@ import 'attendance/take_attendance_screen.dart';
 import 'attendance/student_attendance_screen.dart';
 import '../models/subject_model.dart';
 import '../models/subject_configuration_model.dart';
+import '../services/student_subject_service.dart';
+import '../services/subject_api_service.dart';
+import '../services/teacher_api_service.dart';
+import '../services/attendance_api_service.dart';
+import 'package:flutter/foundation.dart';
 
 class DashboardScreen extends StatefulWidget {
   final User user;
@@ -829,28 +834,89 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // Función para navegar a selección de materia (profesores)
   void _navigateToSubjectSelection(String action) async {
     try {
-      // Aquí deberías cargar las materias del profesor desde la API
-      // Por ahora usamos un ejemplo con materias hardcodeadas
-      final List<Subject> teacherSubjects = [
-        Subject(
-          id: '1',
-          name: 'Matemáticas',
-          grade: '1°',
-          section: 'A',
-          teacherName: 'Prof. García',
-          isActive: true,
-          academicYear: DateTime.now().year.toString(),
+      // Mostrar loading
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
         ),
-        Subject(
-          id: '2',
-          name: 'Ciencias',
-          grade: '1°',
-          section: 'A',
-          teacherName: 'Prof. García',
-          isActive: true,
-          academicYear: DateTime.now().year.toString(),
-        ),
-      ];
+      );
+
+      // Obtener el usuario_id del profesor logueado
+      final userId = widget.user.id!;
+
+      // Obtener el profesor_id desde el usuario_id
+      // Buscamos el profesor que tiene el mismo email que el usuario logueado
+      final TeacherApiService teacherService = TeacherApiService();
+      final allTeachers = await teacherService.getAllTeachers();
+
+      // Buscar el profesor que tiene el mismo email que el usuario actual
+      final userEmail = widget.user.email.toLowerCase();
+      final teacher = allTeachers.firstWhere(
+        (t) => t.email.toLowerCase() == userEmail,
+        orElse: () => throw Exception(
+            'No se encontró el profesor para este usuario (email: $userEmail)'),
+      );
+
+      final profesorId = teacher.id;
+      debugPrint(
+          '📚 DEBUG DashboardScreen: Profesor encontrado - ID: $profesorId, Email: ${teacher.email} para usuario_id: $userId');
+
+      // Cargar las materias del profesor usando el profesor_id
+      final SubjectApiService subjectService = SubjectApiService();
+
+      // SIEMPRE filtrar por profesor_id para asegurar que solo se muestren sus materias
+      List<Subject> teacherSubjects = [];
+
+      try {
+        // Primero intentar con el método específico
+        teacherSubjects =
+            await subjectService.getSubjectsByTeacher(profesorId.toString());
+        debugPrint(
+            '📚 DEBUG DashboardScreen: ${teacherSubjects.length} materias encontradas para profesor_id: $profesorId');
+
+        // Verificar que realmente están filtradas correctamente
+        teacherSubjects = teacherSubjects.where((subject) {
+          if (subject.teacherId != null) {
+            final subjectTeacherId = int.tryParse(subject.teacherId!);
+            return subjectTeacherId == profesorId;
+          }
+          return false;
+        }).toList();
+        debugPrint(
+            '📚 DEBUG DashboardScreen: ${teacherSubjects.length} materias después de verificación de filtro');
+      } catch (e) {
+        debugPrint(
+            '⚠️ ERROR DashboardScreen: Error obteniendo materias por profesor: $e');
+      }
+
+      // Si aún no hay materias o falló el método, usar filtrado manual como respaldo
+      if (teacherSubjects.isEmpty) {
+        debugPrint(
+            '📚 DEBUG DashboardScreen: Usando método de respaldo - obteniendo todas y filtrando manualmente');
+        final allSubjects = await subjectService.getAllSubjects();
+
+        // Filtrar estrictamente por profesor_id
+        teacherSubjects = allSubjects.where((subject) {
+          if (subject.teacherId != null) {
+            final subjectTeacherId = int.tryParse(subject.teacherId!);
+            final matches = subjectTeacherId == profesorId && subject.isActive;
+            if (matches) {
+              debugPrint(
+                  '✅ DEBUG DashboardScreen: Materia incluida - ${subject.name} (profesor_id: ${subject.teacherId})');
+            }
+            return matches;
+          }
+          return false;
+        }).toList();
+
+        debugPrint(
+            '📚 DEBUG DashboardScreen: ${teacherSubjects.length} materias encontradas después de filtrado manual estricto');
+      }
+
+      // Cerrar loading
+      Navigator.pop(context);
 
       if (teacherSubjects.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -982,24 +1048,80 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           );
         } else if (action == 'Tomar Asistencia') {
-          // Aquí necesitarías obtener la configuración de la materia
-          // Por ahora creamos una configuración temporal
-          final config = SubjectConfiguration(
-            id: 1,
-            subjectId: int.parse(selectedSubject.id!),
-            teacherId: widget.user.id!,
-            academicYear: DateTime.now().year.toString(),
-            startDate: DateTime.now(),
-            endDate: DateTime.now().add(const Duration(days: 120)),
-            classDays: ['lunes', 'miercoles', 'viernes'],
-            classTime: '08:00',
-            attendanceGoal: 80,
+          // Obtener el profesor_id correcto del usuario logueado
+          final TeacherApiService teacherService = TeacherApiService();
+          final allTeachers = await teacherService.getAllTeachers();
+
+          // Buscar el profesor que tiene el mismo email que el usuario actual
+          final userEmail = widget.user.email.toLowerCase();
+          final teacher = allTeachers.firstWhere(
+            (t) => t.email.toLowerCase() == userEmail,
+            orElse: () =>
+                throw Exception('No se encontró el profesor para este usuario'),
           );
+
+          final profesorId = teacher.id ?? 0;
+          if (profesorId == 0) {
+            throw Exception('No se pudo obtener el ID del profesor');
+          }
+
+          // Intentar obtener la configuración de la materia, si no existe crear una temporal
+          final AttendanceApiService attendanceService = AttendanceApiService();
+          SubjectConfiguration? config;
+
+          try {
+            config = await attendanceService.getSubjectConfiguration(
+              int.parse(selectedSubject.id!),
+              DateTime.now().year,
+              fallbackTeacherId:
+                  profesorId, // Inyectar profesor_id si no viene en la respuesta
+            );
+          } catch (e) {
+            debugPrint('⚠️ No se encontró configuración, usando temporal: $e');
+          }
+
+          // Si la configuración se cargó pero teacherId es 0, asignarlo manualmente
+          if (config != null && config.teacherId == 0) {
+            config = SubjectConfiguration(
+              id: config.id,
+              subjectId: config.subjectId,
+              teacherId: profesorId,
+              academicYear: config.academicYear,
+              startDate: config.startDate,
+              endDate: config.endDate,
+              classDays: config.classDays,
+              classTime: config.classTime,
+              attendanceGoal: config.attendanceGoal,
+              createdAt: config.createdAt,
+              updatedAt: config.updatedAt,
+            );
+          }
+
+          // Si no hay configuración, crear una temporal
+          final finalConfig = config ??
+              SubjectConfiguration(
+                id: null,
+                subjectId: int.parse(selectedSubject.id!),
+                teacherId: profesorId,
+                academicYear: DateTime.now().year.toString(),
+                startDate: DateTime.now(),
+                endDate: DateTime.now().add(const Duration(days: 120)),
+                classDays: [
+                  'lunes',
+                  'martes',
+                  'miercoles',
+                  'jueves',
+                  'viernes'
+                ],
+                classTime: '08:00',
+                attendanceGoal: 80,
+              );
 
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => TakeAttendanceScreen(configuration: config),
+              builder: (context) =>
+                  TakeAttendanceScreen(configuration: finalConfig),
             ),
           );
         }
@@ -1014,28 +1136,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // Función para navegar a selección de materia (estudiantes)
   void _navigateToStudentSubjectSelection() async {
     try {
-      // Aquí deberías cargar las materias del estudiante desde la API
-      // Por ahora usamos un ejemplo con materias hardcodeadas
-      final List<Subject> studentSubjects = [
-        Subject(
-          id: '1',
-          name: 'Matemáticas',
-          grade: '1°',
-          section: 'A',
-          teacherName: 'Prof. García',
-          isActive: true,
-          academicYear: DateTime.now().year.toString(),
+      // Mostrar loading
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
         ),
-        Subject(
-          id: '2',
-          name: 'Ciencias',
-          grade: '1°',
-          section: 'A',
-          teacherName: 'Prof. López',
-          isActive: true,
-          academicYear: DateTime.now().year.toString(),
-        ),
-      ];
+      );
+
+      // Cargar las materias del estudiante desde la API
+      final StudentSubjectService studentSubjectService =
+          StudentSubjectService();
+      // Usar getStudentSubjects que filtra correctamente por usuario_id
+      final List<Subject> studentSubjects =
+          await studentSubjectService.getStudentSubjects(widget.user.id!);
+
+      // Cerrar loading
+      Navigator.pop(context);
 
       if (studentSubjects.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
