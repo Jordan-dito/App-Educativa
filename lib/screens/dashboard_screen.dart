@@ -10,6 +10,8 @@ import 'enrollments/enrollments_screen.dart';
 import 'attendance/teacher_configuration_screen.dart';
 import 'attendance/take_attendance_screen.dart';
 import 'attendance/student_attendance_screen.dart';
+import 'grades/teacher_grades_list_screen.dart';
+import 'grades/student_grades_list_screen.dart';
 import '../models/subject_model.dart';
 import '../models/subject_configuration_model.dart';
 import '../services/student_subject_service.dart';
@@ -68,8 +70,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       color: Colors.red,
       roles: [
         'admin',
-        'profesor'
-      ], // Admin y Profesor pueden ver calificaciones
+        'profesor',
+        'estudiante'
+      ], // Admin, Profesor y Estudiante pueden ver calificaciones
     ),
     DashboardItem(
       title: 'Reportes',
@@ -94,6 +97,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
       icon: Icons.person_pin_circle,
       color: Colors.purple,
       roles: ['estudiante'], // Solo estudiantes pueden ver su asistencia
+    ),
+    DashboardItem(
+      title: 'Mis Notas',
+      icon: Icons.assessment,
+      color: Colors.red,
+      roles: ['estudiante'], // Solo estudiantes pueden ver sus notas
     ),
     DashboardItem(
       title: 'Pendientes',
@@ -176,6 +185,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
       case 'Mi Asistencia':
         _navigateToStudentSubjectSelection();
         return;
+      case 'Mis Notas':
+        if (widget.user.rol == 'estudiante') {
+          screen = const StudentGradesListScreen();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No tienes acceso a este módulo')),
+          );
+          return;
+        }
+        break;
+      case 'Calificaciones':
+        // Navegar a pantalla de calificaciones según el rol
+        final userRole = widget.user.rol;
+        if (userRole == 'profesor' || userRole == 'admin') {
+          screen = const TeacherGradesListScreen();
+        } else if (userRole == 'estudiante') {
+          screen = const StudentGradesListScreen();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No tienes acceso a este módulo')),
+          );
+          return;
+        }
+        break;
       case 'Pendientes':
         // Mostrar contenido de pendientes para estudiantes
         setState(() {

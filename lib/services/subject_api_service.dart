@@ -237,7 +237,8 @@ class SubjectApiService {
           '📚 DEBUG SubjectApiService.getSubjectsByTeacher: Obteniendo materias del profesor: $teacherId');
 
       final response = await http.get(
-        Uri.parse('$subjectsEndpoint?action=all&profesor_id=$teacherId'),
+        Uri.parse(
+            '$subjectsEndpoint?action=by-profesor&profesor_id=$teacherId'),
         headers: _headers,
       );
 

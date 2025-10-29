@@ -24,7 +24,8 @@ class GradesApiService {
   }) async {
     try {
       print('📝 DEBUG GradesApiService.saveGrade: Guardando notas...');
-      print('   Estudiante ID: $estudianteId, Materia ID: $materiaId');
+      print(
+          '   Estudiante ID: $estudianteId, Materia ID: $materiaId, Profesor ID: $profesorId');
       print('   Notas: $nota1, $nota2, $nota3, $nota4');
 
       final response = await http.post(
@@ -42,15 +43,28 @@ class GradesApiService {
         }),
       );
 
-      print('📝 DEBUG GradesApiService.saveGrade: Status Code: ${response.statusCode}');
-      print('📝 DEBUG GradesApiService.saveGrade: Response Body: ${response.body}');
+      print('📝 DEBUG GradesApiService.saveGrade: Request Body: ${jsonEncode({
+            'estudiante_id': estudianteId,
+            'materia_id': materiaId,
+            'profesor_id': profesorId,
+            'año_academico': anioAcademico,
+            'nota_1': nota1,
+            'nota_2': nota2,
+            'nota_3': nota3,
+            'nota_4': nota4,
+          })}');
+      print(
+          '📝 DEBUG GradesApiService.saveGrade: Status Code: ${response.statusCode}');
+      print(
+          '📝 DEBUG GradesApiService.saveGrade: Response Body: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final Map<String, dynamic> jsonResponse = json.decode(response.body);
-        
+
         if (jsonResponse['success'] == true) {
           final data = jsonResponse['data'];
-          print('✅ DEBUG GradesApiService.saveGrade: Notas guardadas exitosamente');
+          print(
+              '✅ DEBUG GradesApiService.saveGrade: Notas guardadas exitosamente');
           return Grade.fromJson(data);
         } else {
           throw Exception(jsonResponse['message'] ?? 'Error al guardar notas');
@@ -71,29 +85,35 @@ class GradesApiService {
     String? anioAcademico,
   }) async {
     try {
-      print('📝 DEBUG GradesApiService.getStudentGradeInMatter: Obteniendo notas del estudiante...');
-      
-      String url = '$_baseUrl/api/notas.php?action=obtener_estudiante&estudiante_id=$estudianteId&materia_id=$materiaId';
+      print(
+          '📝 DEBUG GradesApiService.getStudentGradeInMatter: Obteniendo notas del estudiante...');
+
+      String url =
+          '$_baseUrl/api/notas.php?action=obtener_estudiante&estudiante_id=$estudianteId&materia_id=$materiaId';
       if (anioAcademico != null) {
         url += '&año_academico=$anioAcademico';
       }
 
       final response = await http.get(Uri.parse(url), headers: _headers);
 
-      print('📝 DEBUG GradesApiService.getStudentGradeInMatter: Status Code: ${response.statusCode}');
-      print('📝 DEBUG GradesApiService.getStudentGradeInMatter: Response Body: ${response.body}');
+      print(
+          '📝 DEBUG GradesApiService.getStudentGradeInMatter: Status Code: ${response.statusCode}');
+      print(
+          '📝 DEBUG GradesApiService.getStudentGradeInMatter: Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonResponse = json.decode(response.body);
-        
+
         if (jsonResponse['success'] == true) {
           final data = jsonResponse['data'];
-          
+
           if (data != null) {
-            print('✅ DEBUG GradesApiService.getStudentGradeInMatter: Notas encontradas');
+            print(
+                '✅ DEBUG GradesApiService.getStudentGradeInMatter: Notas encontradas');
             return Grade.fromJson(data);
           } else {
-            print('⚠️ DEBUG GradesApiService.getStudentGradeInMatter: No hay notas para este estudiante');
+            print(
+                '⚠️ DEBUG GradesApiService.getStudentGradeInMatter: No hay notas para este estudiante');
             return null;
           }
         } else {
@@ -115,33 +135,52 @@ class GradesApiService {
     String? anioAcademico,
   }) async {
     try {
-      print('📝 DEBUG GradesApiService.getMatterGrades: Obteniendo notas de la materia...');
-      
-      String url = '$_baseUrl/api/notas.php?action=obtener_materia&materia_id=$materiaId&profesor_id=$profesorId';
+      print(
+          '📝 DEBUG GradesApiService.getMatterGrades: Obteniendo notas de la materia...');
+
+      String url =
+          '$_baseUrl/api/notas.php?action=obtener_materia&materia_id=$materiaId&profesor_id=$profesorId';
       if (anioAcademico != null) {
         url += '&año_academico=$anioAcademico';
       }
 
       final response = await http.get(Uri.parse(url), headers: _headers);
 
-      print('📝 DEBUG GradesApiService.getMatterGrades: Status Code: ${response.statusCode}');
-      print('📝 DEBUG GradesApiService.getMatterGrades: Response Body: ${response.body}');
+      print(
+          '📝 DEBUG GradesApiService.getMatterGrades: Status Code: ${response.statusCode}');
+      print(
+          '📝 DEBUG GradesApiService.getMatterGrades: Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonResponse = json.decode(response.body);
-        
+
         if (jsonResponse['success'] == true) {
           final data = jsonResponse['data'];
-          
-          if (data is List) {
-            print('✅ DEBUG GradesApiService.getMatterGrades: ${data.length} notas encontradas');
+
+          print(
+              '🔧 DEBUG GradesApiService.getMatterGrades: data type = ${data.runtimeType}');
+          print(
+              '🔧 DEBUG GradesApiService.getMatterGrades: data keys = ${data is Map ? data.keys.toList() : "no es Map"}');
+
+          if (data is Map<String, dynamic> && data['notas'] != null) {
+            // El endpoint retorna: { "data": { "materia_id": 3, "notas": [...] } }
+            final notasList = data['notas'] as List;
+            print(
+                '✅ DEBUG GradesApiService.getMatterGrades: ${notasList.length} notas encontradas en data["notas"]');
+            return notasList.map((json) => Grade.fromJson(json)).toList();
+          } else if (data is List) {
+            // Fallback: si data es directamente una lista
+            print(
+                '✅ DEBUG GradesApiService.getMatterGrades: ${data.length} notas encontradas (data es List)');
             return data.map((json) => Grade.fromJson(json)).toList();
           } else {
-            print('⚠️ DEBUG GradesApiService.getMatterGrades: No hay notas en esta materia');
+            print(
+                '⚠️ DEBUG GradesApiService.getMatterGrades: No hay notas en esta materia');
             return [];
           }
         } else {
-          throw Exception(jsonResponse['message'] ?? 'Error al obtener notas de la materia');
+          throw Exception(jsonResponse['message'] ??
+              'Error al obtener notas de la materia');
         }
       } else {
         throw Exception('Error HTTP: ${response.statusCode}');
@@ -158,33 +197,40 @@ class GradesApiService {
     String? anioAcademico,
   }) async {
     try {
-      print('📝 DEBUG GradesApiService.getAllStudentGrades: Obteniendo todas las notas del estudiante...');
-      
-      String url = '$_baseUrl/api/notas.php?action=obtener_todas&estudiante_id=$estudianteId';
+      print(
+          '📝 DEBUG GradesApiService.getAllStudentGrades: Obteniendo todas las notas del estudiante...');
+
+      String url =
+          '$_baseUrl/api/notas.php?action=obtener_todas&estudiante_id=$estudianteId';
       if (anioAcademico != null) {
         url += '&año_academico=$anioAcademico';
       }
 
       final response = await http.get(Uri.parse(url), headers: _headers);
 
-      print('📝 DEBUG GradesApiService.getAllStudentGrades: Status Code: ${response.statusCode}');
-      print('📝 DEBUG GradesApiService.getAllStudentGrades: Response Body: ${response.body}');
+      print(
+          '📝 DEBUG GradesApiService.getAllStudentGrades: Status Code: ${response.statusCode}');
+      print(
+          '📝 DEBUG GradesApiService.getAllStudentGrades: Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonResponse = json.decode(response.body);
-        
+
         if (jsonResponse['success'] == true) {
           final data = jsonResponse['data'];
-          
+
           if (data is List) {
-            print('✅ DEBUG GradesApiService.getAllStudentGrades: ${data.length} notas encontradas');
+            print(
+                '✅ DEBUG GradesApiService.getAllStudentGrades: ${data.length} notas encontradas');
             return data.map((json) => Grade.fromJson(json)).toList();
           } else {
-            print('⚠️ DEBUG GradesApiService.getAllStudentGrades: No hay notas');
+            print(
+                '⚠️ DEBUG GradesApiService.getAllStudentGrades: No hay notas');
             return [];
           }
         } else {
-          throw Exception(jsonResponse['message'] ?? 'Error al obtener todas las notas');
+          throw Exception(
+              jsonResponse['message'] ?? 'Error al obtener todas las notas');
         }
       } else {
         throw Exception('Error HTTP: ${response.statusCode}');
@@ -195,4 +241,3 @@ class GradesApiService {
     }
   }
 }
-

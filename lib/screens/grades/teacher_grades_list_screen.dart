@@ -17,6 +17,7 @@ class _TeacherGradesListScreenState extends State<TeacherGradesListScreen> {
   final TeacherApiService _teacherService = TeacherApiService();
   
   List<Subject> _subjects = [];
+  int? _currentProfesorId; // Guardar el profesor_id del usuario actual
   bool _isLoading = true;
 
   @override
@@ -37,20 +38,34 @@ class _TeacherGradesListScreenState extends State<TeacherGradesListScreen> {
         return;
       }
 
-      // Obtener todos los profesores para encontrar el que corresponde al usuario
-      final allTeachers = await _teacherService.getAllTeachers();
-      final userEmail = user.email.toLowerCase();
+      // Obtener el profesor_id del usuario (viene del login en user_data.id)
+      int profesorId;
       
-      final teacher = allTeachers.firstWhere(
-        (t) => t.email.toLowerCase() == userEmail,
-        orElse: () => throw Exception('No se encontró el profesor'),
-      );
+      if (user.profesorId != null) {
+        // Si ya tiene el profesor_id guardado, usarlo directamente
+        profesorId = user.profesorId!;
+        print('✅ DEBUG TeacherGradesListScreen: Usando profesor_id del usuario: $profesorId');
+      } else {
+        // Si no tiene profesor_id, buscarlo por email (fallback)
+        print('⚠️ DEBUG TeacherGradesListScreen: No hay profesor_id, buscando por email...');
+        final allTeachers = await _teacherService.getAllTeachers();
+        final userEmail = user.email.toLowerCase();
+        
+        final teacher = allTeachers.firstWhere(
+          (t) => t.email.toLowerCase() == userEmail,
+          orElse: () => throw Exception('No se encontró el profesor'),
+        );
+        
+        profesorId = teacher.id!;
+        print('✅ DEBUG TeacherGradesListScreen: Profesor encontrado por email, ID: $profesorId');
+      }
 
-      // Cargar materias del profesor
-      final subjects = await _subjectService.getSubjectsByTeacher(teacher.id.toString());
+      // Cargar materias del profesor usando el profesor_id
+      final subjects = await _subjectService.getSubjectsByTeacher(profesorId.toString());
       
       setState(() {
         _subjects = subjects;
+        _currentProfesorId = profesorId; // Guardar el profesor_id para usar en navegación
         _isLoading = false;
       });
     } catch (e) {
@@ -112,15 +127,18 @@ class _TeacherGradesListScreenState extends State<TeacherGradesListScreen> {
                         subtitle: Text('${subject.grade} - ${subject.section}'),
                         trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                         onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => TeacherStudentsGradesScreen(
-                                subject: subject,
-                                profesorId: int.tryParse(subject.teacherId ?? '0') ?? 0,
+                          // Usar el profesor_id del usuario actual, no el de la materia
+                          if (_currentProfesorId != null) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => TeacherStudentsGradesScreen(
+                                  subject: subject,
+                                  profesorId: _currentProfesorId!,
+                                ),
                               ),
-                            ),
-                          ).then((_) => _loadSubjects()); // Recargar al volver
+                            ).then((_) => _loadSubjects()); // Recargar al volver
+                          }
                         },
                       ),
                     );

@@ -14,6 +14,7 @@ class User {
 
   // Campos específicos para profesores
   final String? fechaContratacion;
+  final int? profesorId; // ID del profesor (user_data.id)
 
   User({
     this.id,
@@ -27,6 +28,7 @@ class User {
     this.seccion,
     this.fechaNacimiento,
     this.fechaContratacion,
+    this.profesorId,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -65,6 +67,7 @@ class User {
         seccion: json['seccion'],
         fechaNacimiento: json['fecha_nacimiento'],
         fechaContratacion: json['fecha_contratacion'],
+        profesorId: parseId(userData['id']), // profesor_id viene en user_data.id
       );
       print(
           'DEBUG User.fromJson: Usuario creado con estructura nueva - Rol: ${user.rol}');
@@ -104,6 +107,7 @@ class User {
       'seccion': seccion,
       'fecha_nacimiento': fechaNacimiento,
       'fecha_contratacion': fechaContratacion,
+      'profesor_id': profesorId,
     };
   }
 }
