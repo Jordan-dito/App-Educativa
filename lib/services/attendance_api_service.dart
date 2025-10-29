@@ -49,8 +49,8 @@ class AttendanceApiService {
   }
 
   /// Obtener configuración de materia por ID y año académico
-  Future<SubjectConfiguration?> getSubjectConfiguration(
-      int materiaId, int year, {int? fallbackTeacherId}) async {
+  Future<SubjectConfiguration?> getSubjectConfiguration(int materiaId, int year,
+      {int? fallbackTeacherId}) async {
     try {
       final response = await http.get(
         Uri.parse(
@@ -69,13 +69,15 @@ class AttendanceApiService {
         final responseData = jsonDecode(response.body);
         if (responseData['success'] == true && responseData['data'] != null) {
           final data = responseData['data'] as Map<String, dynamic>;
-          
+
           // Si no viene profesor_id y tenemos un fallback, inyectarlo
-          if ((data['profesor_id'] == null || data['profesor_id'] == 0) && fallbackTeacherId != null) {
+          if ((data['profesor_id'] == null || data['profesor_id'] == 0) &&
+              fallbackTeacherId != null) {
             data['profesor_id'] = fallbackTeacherId;
-            print('🔧 DEBUG AttendanceApiService.getSubjectConfiguration: Inyectando profesor_id = $fallbackTeacherId');
+            print(
+                '🔧 DEBUG AttendanceApiService.getSubjectConfiguration: Inyectando profesor_id = $fallbackTeacherId');
           }
-          
+
           return SubjectConfiguration.fromJson(data);
         }
       }
@@ -239,7 +241,7 @@ class AttendanceApiService {
       int materiaId, DateTime date) async {
     try {
       final dateStr = date.toIso8601String().split('T')[0];
-      
+
       // Usar endpoint PHP para obtener asistencia
       final response = await http.get(
         Uri.parse(
@@ -257,32 +259,37 @@ class AttendanceApiService {
 
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
-        if (responseData is Map<String, dynamic> && responseData['success'] == true) {
+        if (responseData is Map<String, dynamic> &&
+            responseData['success'] == true) {
           final data = responseData['data'];
-          
-          print('🔧 DEBUG AttendanceApiService.getAttendanceByDate: data type = ${data.runtimeType}');
-          
+
+          print(
+              '🔧 DEBUG AttendanceApiService.getAttendanceByDate: data type = ${data.runtimeType}');
+
           // El endpoint puede retornar:
           // Opción 1: data es directamente una lista: { "data": [...] }
           // Opción 2: data es un objeto con "asistencias": { "data": { "asistencias": [...] } }
-          
+
           List<dynamic> asistenciasList = [];
-          
+
           if (data is List) {
             // Opción 1: data es directamente una lista
             asistenciasList = data;
-            print('🔧 DEBUG AttendanceApiService.getAttendanceByDate: data es List, ${asistenciasList.length} items');
+            print(
+                '🔧 DEBUG AttendanceApiService.getAttendanceByDate: data es List, ${asistenciasList.length} items');
           } else if (data is Map<String, dynamic>) {
             // Opción 2: data es un objeto, buscar la lista en "asistencias"
             if (data['asistencias'] != null && data['asistencias'] is List) {
               asistenciasList = data['asistencias'] as List;
-              print('🔧 DEBUG AttendanceApiService.getAttendanceByDate: encontrado data["asistencias"], ${asistenciasList.length} items');
+              print(
+                  '🔧 DEBUG AttendanceApiService.getAttendanceByDate: encontrado data["asistencias"], ${asistenciasList.length} items');
             } else {
-              print('⚠️ DEBUG AttendanceApiService.getAttendanceByDate: data es Map pero no tiene "asistencias" o no es List');
+              print(
+                  '⚠️ DEBUG AttendanceApiService.getAttendanceByDate: data es Map pero no tiene "asistencias" o no es List');
               print('   data keys: ${data.keys.toList()}');
             }
           }
-          
+
           if (asistenciasList.isNotEmpty) {
             // Convertir los datos del formato PHP al formato AttendanceRecord
             return asistenciasList.map((json) {
@@ -290,12 +297,15 @@ class AttendanceApiService {
               return AttendanceRecord(
                 subjectConfigurationId: materiaId,
                 studentId: json['estudiante_id'] ?? json['estudianteId'] ?? 0,
-                classDate: DateTime.parse(json['fecha_clase'] ?? json['fechaClase'] ?? dateStr),
-                status: _parseAttendanceStatus(json['estado'] ?? json['status'] ?? 'ausente'),
+                classDate: DateTime.parse(
+                    json['fecha_clase'] ?? json['fechaClase'] ?? dateStr),
+                status: _parseAttendanceStatus(
+                    json['estado'] ?? json['status'] ?? 'ausente'),
               );
             }).toList();
           } else {
-            print('⚠️ DEBUG AttendanceApiService.getAttendanceByDate: asistenciasList está vacío');
+            print(
+                '⚠️ DEBUG AttendanceApiService.getAttendanceByDate: asistenciasList está vacío');
           }
         }
       }
@@ -323,47 +333,230 @@ class AttendanceApiService {
   }
 
   /// Obtener resumen de asistencia de un estudiante en una materia
+  /// Intenta usar el resumen del endpoint, si no está disponible calcula desde los registros
   Future<StudentAttendanceSummary?> getStudentAttendanceSummary(
-      int studentId, int subjectConfigId) async {
+      int estudianteId, int materiaId) async {
     try {
+      print('🔧 DEBUG AttendanceApiService.getStudentAttendanceSummary:');
+      print('   estudiante_id: $estudianteId, materia_id: $materiaId');
+
+      // Intentar obtener el resumen directamente del endpoint
+      try {
+        final response = await http.get(
+          Uri.parse(
+              '$_baseUrl/api/asistencia.php?action=listar_estudiante&estudiante_id=$estudianteId&materia_id=$materiaId'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+        );
+
+        if (response.statusCode == 200) {
+          final responseData = jsonDecode(response.body);
+          if (responseData is Map<String, dynamic> &&
+              responseData['success'] == true) {
+            final data = responseData['data'];
+
+            // Si el endpoint retorna un resumen, usarlo directamente
+            if (data is Map<String, dynamic> && data['resumen'] != null) {
+              final resumen = data['resumen'] as Map<String, dynamic>;
+
+              print(
+                  '✅ DEBUG AttendanceApiService.getStudentAttendanceSummary: Usando resumen del endpoint');
+
+              final total = resumen['total'] ?? 0;
+              final presentes = resumen['presentes'] ?? 0;
+              final ausentes = resumen['ausentes'] ?? 0;
+              final tardanzas = resumen['tardanzas'] ?? 0;
+              final porcentaje =
+                  (resumen['porcentaje_asistencia'] ?? 0.0).toDouble();
+              final meta = 80; // Meta por defecto
+
+              // Obtener nombre del estudiante desde data si está disponible
+              final studentName =
+                  data['nombre_estudiante'] ?? 'Estudiante $estudianteId';
+
+              return StudentAttendanceSummary(
+                studentId: estudianteId,
+                studentName: studentName.toString(),
+                totalClasses:
+                    total is int ? total : int.tryParse(total.toString()) ?? 0,
+                presentCount: presentes is int
+                    ? presentes
+                    : int.tryParse(presentes.toString()) ?? 0,
+                absentCount: ausentes is int
+                    ? ausentes
+                    : int.tryParse(ausentes.toString()) ?? 0,
+                lateCount: tardanzas is int
+                    ? tardanzas
+                    : int.tryParse(tardanzas.toString()) ?? 0,
+                justifiedCount:
+                    0, // Por ahora no hay justificados en el resumen
+                attendancePercentage: porcentaje,
+                goalPercentage: meta,
+                meetsGoal: porcentaje >= meta,
+              );
+            }
+          }
+        }
+      } catch (e) {
+        print(
+            '⚠️ DEBUG AttendanceApiService.getStudentAttendanceSummary: No se pudo obtener resumen del endpoint, calculando desde registros: $e');
+      }
+
+      // Fallback: Calcular desde los registros obtenidos
+      final allAttendance =
+          await _getStudentAttendanceByMatter(estudianteId, materiaId);
+
+      if (allAttendance.isEmpty) {
+        print(
+            '⚠️ DEBUG AttendanceApiService.getStudentAttendanceSummary: No hay asistencias');
+        return null;
+      }
+
+      // Calcular estadísticas desde los registros
+      final total = allAttendance.length;
+      final presentes = allAttendance
+          .where((a) => a.status == AttendanceStatus.present)
+          .length;
+      final ausentes = allAttendance
+          .where((a) => a.status == AttendanceStatus.absent)
+          .length;
+      final tardanzas =
+          allAttendance.where((a) => a.status == AttendanceStatus.late).length;
+      final justificados = allAttendance
+          .where((a) => a.status == AttendanceStatus.justified)
+          .length;
+      final porcentaje = total > 0 ? (presentes / total) * 100 : 0.0;
+      final meta = 80;
+
+      print(
+          '🔧 DEBUG AttendanceApiService.getStudentAttendanceSummary (calculado):');
+      print(
+          '   Total: $total, Presentes: $presentes, Ausentes: $ausentes, Tardanzas: $tardanzas');
+      print('   Porcentaje: $porcentaje%');
+
+      return StudentAttendanceSummary(
+        studentId: estudianteId,
+        studentName: 'Estudiante $estudianteId',
+        totalClasses: total,
+        presentCount: presentes,
+        absentCount: ausentes,
+        lateCount: tardanzas,
+        justifiedCount: justificados,
+        attendancePercentage: porcentaje,
+        goalPercentage: meta,
+        meetsGoal: porcentaje >= meta,
+      );
+    } catch (e) {
+      print('❌ ERROR AttendanceApiService.getStudentAttendanceSummary: $e');
+      return null;
+    }
+  }
+
+  /// Obtener todas las asistencias de un estudiante en una materia
+  Future<List<AttendanceRecord>> _getStudentAttendanceByMatter(
+      int estudianteId, int materiaId) async {
+    try {
+      // El endpoint listar puede recibir estudiante_id como parámetro opcional
+      // Si no, obtenemos todas y filtramos
       final response = await http.get(
         Uri.parse(
-            '$_baseUrl/attendance-records/student/$studentId/subject/$subjectConfigId/summary'),
+            '$_baseUrl/api/asistencia.php?action=listar_estudiante&estudiante_id=$estudianteId&materia_id=$materiaId'),
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
       );
 
+      print('🔧 DEBUG AttendanceApiService._getStudentAttendanceByMatter:');
+      print('   URL: ${response.request?.url}');
+      print('   Status code: ${response.statusCode}');
+      print('   Response body: ${response.body}');
+
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return StudentAttendanceSummary.fromJson(data);
+        final responseData = jsonDecode(response.body);
+        if (responseData is Map<String, dynamic> &&
+            responseData['success'] == true) {
+          final data = responseData['data'];
+          List<dynamic> asistenciasList = [];
+
+          print(
+              '🔧 DEBUG AttendanceApiService._getStudentAttendanceByMatter: data type = ${data.runtimeType}');
+
+          // El endpoint retorna: { "data": { "resumen": {...}, "asistencias": [...] } }
+          if (data is Map<String, dynamic>) {
+            if (data['asistencias'] != null && data['asistencias'] is List) {
+              asistenciasList = data['asistencias'] as List;
+              print(
+                  '🔧 DEBUG AttendanceApiService._getStudentAttendanceByMatter: Encontrado ${asistenciasList.length} asistencias en data["asistencias"]');
+            } else {
+              print(
+                  '⚠️ DEBUG AttendanceApiService._getStudentAttendanceByMatter: data es Map pero no tiene "asistencias"');
+              print('   data keys: ${data.keys.toList()}');
+              // Intentar usar resumen si existe
+              if (data['resumen'] != null) {
+                print('   ✅ Encontrado resumen en data');
+              }
+            }
+          } else if (data is List) {
+            // Por si acaso retorna directamente una lista
+            asistenciasList = data;
+            print(
+                '🔧 DEBUG AttendanceApiService._getStudentAttendanceByMatter: data es List directo con ${asistenciasList.length} items');
+          }
+
+          if (asistenciasList.isNotEmpty) {
+            print(
+                '✅ DEBUG AttendanceApiService._getStudentAttendanceByMatter: ${asistenciasList.length} asistencias encontradas');
+            return asistenciasList.map((json) {
+              return AttendanceRecord(
+                subjectConfigurationId: materiaId,
+                studentId: json['estudiante_id'] ?? estudianteId,
+                classDate: DateTime.parse(json['fecha_clase'] ??
+                    DateTime.now().toIso8601String().split('T')[0]),
+                status: _parseAttendanceStatus(json['estado'] ?? 'ausente'),
+              );
+            }).toList();
+          } else {
+            print(
+                '⚠️ DEBUG AttendanceApiService._getStudentAttendanceByMatter: asistenciasList está vacío');
+          }
+        } else {
+          print(
+              '⚠️ DEBUG AttendanceApiService._getStudentAttendanceByMatter: success no es true o responseData no es Map');
+          print(
+              '   responseData keys: ${responseData is Map ? responseData.keys.toList() : "no es Map"}');
+        }
+      } else {
+        print(
+            '❌ DEBUG AttendanceApiService._getStudentAttendanceByMatter: Status code ${response.statusCode}');
       }
-      return null;
+
+      return [];
     } catch (e) {
-      print('Error getting student attendance summary: $e');
-      return null;
+      print('❌ ERROR AttendanceApiService._getStudentAttendanceByMatter: $e');
+      return [];
     }
   }
 
   /// Obtener historial de asistencia de un estudiante
   Future<List<AttendanceRecord>> getStudentAttendanceHistory(
-      int studentId, int subjectConfigId) async {
+      int estudianteId, int materiaId) async {
     try {
-      final response = await http.get(
-        Uri.parse(
-            '$_baseUrl/attendance-records/student/$studentId/subject/$subjectConfigId/history'),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      );
+      print('🔧 DEBUG AttendanceApiService.getStudentAttendanceHistory:');
+      print('   estudiante_id: $estudianteId, materia_id: $materiaId');
 
-      if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
-        return data.map((json) => AttendanceRecord.fromJson(json)).toList();
-      }
-      return [];
+      // Usar el mismo método que obtiene todas las asistencias
+      final allAttendance =
+          await _getStudentAttendanceByMatter(estudianteId, materiaId);
+
+      // Ordenar por fecha descendente (más recientes primero)
+      allAttendance.sort((a, b) => b.classDate.compareTo(a.classDate));
+
+      return allAttendance;
     } catch (e) {
-      print('Error getting student attendance history: $e');
+      print('❌ ERROR AttendanceApiService.getStudentAttendanceHistory: $e');
       return [];
     }
   }
@@ -372,7 +565,7 @@ class AttendanceApiService {
   Future<bool> hasAttendanceForDate(int materiaId, DateTime date) async {
     try {
       final dateStr = date.toIso8601String().split('T')[0];
-      
+
       // Usar endpoint PHP para verificar asistencia
       final response = await http.get(
         Uri.parse(
@@ -392,30 +585,31 @@ class AttendanceApiService {
         try {
           final responseData = jsonDecode(response.body);
           if (responseData is Map<String, dynamic>) {
-            // El endpoint puede retornar: 
+            // El endpoint puede retornar:
             // { "success": true, "existe": true/false } (directo)
             // O { "success": true, "data": { "existe": true/false } } (anidado)
-            final existe = responseData['existe'] ?? 
-                           (responseData['data'] != null && responseData['data'] is Map
-                               ? responseData['data']['existe'] 
-                               : null);
-            
-            final count = responseData['count'] ?? 
-                         (responseData['data'] != null && responseData['data'] is Map
-                             ? responseData['data']['total_registros'] 
-                             : null);
-            
+            final existe = responseData['existe'] ??
+                (responseData['data'] != null && responseData['data'] is Map
+                    ? responseData['data']['existe']
+                    : null);
+
+            final count = responseData['count'] ??
+                (responseData['data'] != null && responseData['data'] is Map
+                    ? responseData['data']['total_registros']
+                    : null);
+
             print('🔧 DEBUG AttendanceApiService.hasAttendanceForDate parsed:');
             print('   existe = $existe');
             print('   count = $count');
-            
-            return existe == true || 
-                   (responseData['success'] == true && count != null && count > 0);
+
+            return existe == true ||
+                (responseData['success'] == true && count != null && count > 0);
           }
           return false;
         } catch (e) {
           // Si no se puede parsear, verificar si hay datos
-          return response.body.isNotEmpty && !response.body.contains('"data":[]');
+          return response.body.isNotEmpty &&
+              !response.body.contains('"data":[]');
         }
       }
       return false;
@@ -441,7 +635,8 @@ class AttendanceApiService {
 
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
-        if (responseData is Map<String, dynamic> && responseData['success'] == true) {
+        if (responseData is Map<String, dynamic> &&
+            responseData['success'] == true) {
           final data = responseData['data'];
           if (data is List) {
             return data.isNotEmpty;
@@ -473,7 +668,7 @@ class AttendanceApiService {
       };
 
       final url = '$_baseUrl/api/asistencia.php?action=tomar';
-      
+
       print('🔧 DEBUG AttendanceApiService.takeAttendance:');
       print('   URL: $url');
       print('   Request Data: ${jsonEncode(requestData)}');
@@ -497,22 +692,23 @@ class AttendanceApiService {
         try {
           final responseData = jsonDecode(response.body);
           print('   ✅ Parsed response: $responseData');
-          
+
           // Verificar si la respuesta indica éxito
           if (responseData is Map<String, dynamic>) {
-            final success = responseData['success'] == true || 
-                           responseData['success'] == 1 ||
-                           responseData['status'] == 'success';
-            
+            final success = responseData['success'] == true ||
+                responseData['success'] == 1 ||
+                responseData['status'] == 'success';
+
             if (success) {
               print('   ✅ Asistencia guardada exitosamente');
               return true;
             } else {
-              print('   ⚠️ El servidor reportó error: ${responseData['message'] ?? 'Unknown error'}');
+              print(
+                  '   ⚠️ El servidor reportó error: ${responseData['message'] ?? 'Unknown error'}');
               return false;
             }
           }
-          
+
           // Si la respuesta no es un mapa, considerarla como éxito si el código es 200/201
           return response.statusCode == 200 || response.statusCode == 201;
         } catch (parseError) {

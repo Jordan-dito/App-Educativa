@@ -1276,24 +1276,45 @@ class _DashboardScreenState extends State<DashboardScreen> {
       );
 
       if (selectedSubject != null) {
-        // Crear configuración temporal para mostrar la asistencia del estudiante
-        final config = SubjectConfiguration(
-          id: 1,
-          subjectId: int.parse(selectedSubject.id!),
-          teacherId: 1, // ID del profesor
-          academicYear: DateTime.now().year.toString(),
-          startDate: DateTime.now(),
-          endDate: DateTime.now().add(const Duration(days: 120)),
-          classDays: ['lunes', 'miercoles', 'viernes'],
-          classTime: '08:00',
-          attendanceGoal: 80,
-        );
+        // Intentar obtener la configuración de la materia
+        final AttendanceApiService attendanceService = AttendanceApiService();
+        SubjectConfiguration? config;
+
+        try {
+          // Intentar obtener configuración real (puede que no tenga profesor_id)
+          config = await attendanceService.getSubjectConfiguration(
+            int.parse(selectedSubject.id!),
+            DateTime.now().year,
+            fallbackTeacherId: selectedSubject.teacherId != null
+                ? int.tryParse(selectedSubject.teacherId!) ?? 0
+                : 0,
+          );
+        } catch (e) {
+          debugPrint(
+              '⚠️ No se encontró configuración para estudiante, usando temporal: $e');
+        }
+
+        // Si no hay configuración, crear una temporal
+        final finalConfig = config ??
+            SubjectConfiguration(
+              id: null,
+              subjectId: int.parse(selectedSubject.id!),
+              teacherId: selectedSubject.teacherId != null
+                  ? int.tryParse(selectedSubject.teacherId!) ?? 0
+                  : 0,
+              academicYear: DateTime.now().year.toString(),
+              startDate: DateTime.now().subtract(const Duration(days: 60)),
+              endDate: DateTime.now().add(const Duration(days: 120)),
+              classDays: ['lunes', 'martes', 'miercoles', 'jueves', 'viernes'],
+              classTime: '08:00',
+              attendanceGoal: 80,
+            );
 
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) =>
-                StudentAttendanceScreen(configuration: config),
+                StudentAttendanceScreen(configuration: finalConfig),
           ),
         );
       }

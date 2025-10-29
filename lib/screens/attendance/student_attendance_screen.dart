@@ -3,6 +3,7 @@ import '../../models/subject_configuration_model.dart';
 import '../../models/attendance_model.dart';
 import '../../services/attendance_api_service.dart';
 import '../../services/user_service.dart';
+import '../../services/enrollment_api_service.dart';
 
 class StudentAttendanceScreen extends StatefulWidget {
   final SubjectConfiguration configuration;
@@ -39,23 +40,44 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
         return;
       }
 
-      // Cargar resumen de asistencia
+      print('🎓 DEBUG StudentAttendanceScreen: Usuario actual:');
+      print('   ID: ${user.id}, Email: ${user.email}');
+
+      // Obtener el estudiante_id del usuario_id
+      // Necesitamos usar EnrollmentApiService para obtener el estudiante_id real
+      final enrollmentService = EnrollmentApiService();
+      final estudianteId = await enrollmentService.getStudentIdByUserId(user.id!);
+
+      if (estudianteId == null) {
+        _showErrorMessage('No se encontró el estudiante asociado a este usuario');
+        return;
+      }
+
+      print('🎓 DEBUG StudentAttendanceScreen: estudiante_id encontrado: $estudianteId');
+      print('🎓 DEBUG StudentAttendanceScreen: materia_id: ${widget.configuration.subjectId}');
+
+      // Cargar resumen de asistencia usando estudiante_id real y materia_id
       final summary = await _attendanceService.getStudentAttendanceSummary(
-        user.id!,
-        widget.configuration.id!,
+        estudianteId,
+        widget.configuration.subjectId, // Usar materia_id en lugar de config.id
       );
 
       // Cargar historial reciente
       final history = await _attendanceService.getStudentAttendanceHistory(
-        user.id!,
-        widget.configuration.id!,
+        estudianteId,
+        widget.configuration.subjectId, // Usar materia_id en lugar de config.id
       );
+
+      print('🎓 DEBUG StudentAttendanceScreen:');
+      print('   Resumen: ${summary != null ? "OK" : "null"}');
+      print('   Historial: ${history.length} registros');
 
       setState(() {
         _summary = summary;
         _recentHistory = history.take(10).toList(); // Solo los últimos 10 registros
       });
     } catch (e) {
+      print('❌ ERROR StudentAttendanceScreen._loadData: $e');
       _showErrorMessage('Error al cargar datos: $e');
     } finally {
       setState(() => _isLoading = false);
