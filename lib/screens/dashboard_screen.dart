@@ -33,6 +33,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int _selectedIndex = 0;
   final SubjectApiService _subjectApiService = SubjectApiService();
   final StudentSubjectService _studentSubjectService = StudentSubjectService();
+  final TeacherApiService _teacherApiService = TeacherApiService();
   int _subjectsCount = 0;
   bool _isLoadingSubjectsCount = true;
 
@@ -76,12 +77,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         'admin',
         'profesor'
       ], // Admin y Profesor pueden ver calificaciones
-    ),
-    DashboardItem(
-      title: 'Reportes',
-      icon: Icons.analytics,
-      color: Colors.teal,
-      roles: ['admin', 'profesor'], // Admin y Profesor pueden ver reportes
     ),
     DashboardItem(
       title: 'Configurar Asistencia',
@@ -130,8 +125,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (widget.user.rol.toLowerCase() == 'estudiante') {
         subjects =
             await _studentSubjectService.getStudentSubjects(widget.user.id!);
+      } else if (widget.user.rol.toLowerCase() == 'profesor') {
+        // Para profesores, obtener solo las materias que imparten
+        try {
+          // Obtener el profesor_id del usuario
+          final allTeachers = await _teacherApiService.getAllTeachers();
+          final userEmail = widget.user.email.toLowerCase();
+          final teacher = allTeachers.firstWhere(
+            (t) => t.email.toLowerCase() == userEmail,
+            orElse: () =>
+                throw Exception('No se encontró el profesor para este usuario'),
+          );
+
+          final profesorId = teacher.id;
+          if (profesorId == null) {
+            throw Exception('No se pudo obtener el ID del profesor');
+          }
+
+          // Obtener materias del profesor
+          subjects = await _subjectApiService
+              .getSubjectsByTeacher(profesorId.toString());
+        } catch (e) {
+          debugPrint(
+              '❌ ERROR DashboardScreen._loadSubjectsCount (profesor): $e');
+          // Si falla, mostrar 0 en lugar de error
+          subjects = [];
+        }
       } else {
-        // Para admin y profesores, obtener todas las materias
+        // Para admin, obtener todas las materias
         subjects = await _subjectApiService.getAllSubjects();
       }
 
@@ -575,16 +596,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
               );
             }),
             const Divider(),
-            ListTile(
-              leading: const Icon(Icons.settings),
-              title: const Text('Configuración'),
-              onTap: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Configuración en desarrollo')),
-                );
-              },
-            ),
             ListTile(
               leading: const Icon(Icons.logout, color: Colors.red),
               title: const Text('Cerrar Sesión',
