@@ -148,13 +148,13 @@ class _StudentMateriaGradesScreenState
                       ),
                       const SizedBox(height: 12),
 
-                      _buildNoteCard('Nota 1', _grade!.nota1, 1),
+                      _buildNoteCard('Nota 1 - Unidad 1', _grade!.nota1, 1),
                       const SizedBox(height: 12),
-                      _buildNoteCard('Nota 2', _grade!.nota2, 2),
+                      _buildNoteCard('Nota 2 - Unidad 2', _grade!.nota2, 2),
                       const SizedBox(height: 12),
-                      _buildNoteCard('Nota 3', _grade!.nota3, 3),
+                      _buildNoteCard('Nota 3 - Unidad 3', _grade!.nota3, 3),
                       const SizedBox(height: 12),
-                      _buildNoteCard('Nota 4', _grade!.nota4, 4),
+                      _buildNoteCard('Nota 4 - Unidad 4', _grade!.nota4, 4),
                       const SizedBox(height: 24),
 
                       // Promedio y estado

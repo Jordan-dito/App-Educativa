@@ -4,7 +4,7 @@ import '../../models/enrollment_model.dart';
 import '../../services/enrollment_api_service.dart';
 import '../../services/user_service.dart';
 import '../../models/user.dart';
-import 'student_subject_enrollment_screen.dart';
+// import 'student_subject_enrollment_screen.dart'; // Temporalmente oculto
 
 class StudentEnrollmentsScreen extends StatefulWidget {
   const StudentEnrollmentsScreen({super.key});
@@ -386,22 +386,22 @@ class _StudentEnrollmentsScreenState extends State<StudentEnrollmentsScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          // Navegar a la pantalla específica para estudiantes
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const StudentSubjectEnrollmentScreen(),
-            ),
-          );
-          if (result == true) {
-            _loadUserAndEnrollments();
-          }
-        },
-        backgroundColor: Colors.indigo,
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
+      // floatingActionButton: FloatingActionButton(
+      //   onPressed: () async {
+      //     // Navegar a la pantalla específica para estudiantes
+      //     final result = await Navigator.push(
+      //       context,
+      //       MaterialPageRoute(
+      //         builder: (context) => const StudentSubjectEnrollmentScreen(),
+      //       ),
+      //     );
+      //     if (result == true) {
+      //       _loadUserAndEnrollments();
+      //     }
+      //   },
+      //   backgroundColor: Colors.indigo,
+      //   child: const Icon(Icons.add, color: Colors.white),
+      // ),
     );
   }
 
