@@ -30,8 +30,16 @@ class AuthService {
           '🔐 DEBUG AuthService.login: Response headers: ${response.headers}');
       print('🔐 DEBUG AuthService.login: Response body: ${response.body}');
 
-      if ((response.statusCode != 200 && response.statusCode != 201) &&
-          response.statusCode != 201) {
+      if (response.statusCode == 404 || response.statusCode == 401) {
+        print(
+            '❌ DEBUG AuthService.login: Credenciales incorrectas - Status: ${response.statusCode}');
+        return ApiResponse(
+          success: false,
+          message: 'Credenciales incorrectas',
+        );
+      }
+
+      if (response.statusCode != 200 && response.statusCode != 201) {
         print(
             '❌ DEBUG AuthService.login: Error HTTP - Status: ${response.statusCode}');
         return ApiResponse(

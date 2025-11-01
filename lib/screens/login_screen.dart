@@ -3,7 +3,6 @@ import 'package:email_validator/email_validator.dart';
 import '../services/auth_service.dart';
 import '../services/user_service.dart';
 import 'dashboard_screen.dart';
-import 'test_connection_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -50,14 +49,43 @@ class _LoginScreenState extends State<LoginScreen> {
           );
         }
       } else {
-        setState(() {
-          _error = response.message;
-        });
+        // Verificar si el mensaje indica credenciales incorrectas
+        String message = response.message.toLowerCase();
+        if (message.contains('404') || 
+            message.contains('not found') ||
+            message.contains('unauthorized') ||
+            message.contains('401') ||
+            message.contains('credenciales') ||
+            message.contains('incorrectas') ||
+            message.contains('invalid') ||
+            message.contains('usuario no encontrado')) {
+          // Mostrar modal de credenciales incorrectas
+          if (mounted) {
+            _showCredentialsErrorDialog();
+          }
+        } else {
+          // Para otros errores, mostrar mensaje técnico
+          setState(() {
+            _error = response.message;
+          });
+        }
       }
     } catch (e) {
-      setState(() {
-        _error = 'Error inesperado: $e';
-      });
+      // Detectar si es error 404 o de credenciales
+      String errorMessage = e.toString().toLowerCase();
+      if (errorMessage.contains('404') || 
+          errorMessage.contains('not found') ||
+          errorMessage.contains('unauthorized') ||
+          errorMessage.contains('401')) {
+        if (mounted) {
+          _showCredentialsErrorDialog();
+        }
+      } else {
+        // Para otros errores, mostrar mensaje técnico
+        setState(() {
+          _error = 'Error inesperado: $e';
+        });
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -65,6 +93,50 @@ class _LoginScreenState extends State<LoginScreen> {
         });
       }
     }
+  }
+
+  void _showCredentialsErrorDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.error_outline, color: Colors.red[600], size: 28),
+              const SizedBox(width: 8),
+              const Text(
+                'Error de Autenticación',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          content: const Text(
+            'Credenciales incorrectas. Por favor, verifica tu email y contraseña.',
+            style: TextStyle(fontSize: 16),
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text(
+                'Aceptar',
+                style: TextStyle(
+                  color: Colors.blue[600],
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -210,59 +282,6 @@ class _LoginScreenState extends State<LoginScreen> {
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Botón para probar conexión
-                      TextButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  const TestConnectionScreen(),
-                            ),
-                          );
-                        },
-                        child: Text(
-                          'Probar Conexión API',
-                          style: TextStyle(
-                            color: Colors.blue[600],
-                            decoration: TextDecoration.underline,
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      // Información de credenciales por defecto
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.blue[50],
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.blue[200]!),
-                        ),
-                        child: Column(
-                          children: [
-                            Text(
-                              'Credenciales por defecto:',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.blue[800],
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Email: admin@colegio.com',
-                              style: TextStyle(color: Colors.blue[700]),
-                            ),
-                            Text(
-                              'Contraseña: admin',
-                              style: TextStyle(color: Colors.blue[700]),
-                            ),
-                          ],
                         ),
                       ),
                     ],
