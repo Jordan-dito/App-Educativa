@@ -91,6 +91,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
       roles: ['profesor'], // Solo profesores pueden tomar asistencia
     ),
     DashboardItem(
+      title: 'Reforzamiento',
+      icon: Icons.school,
+      color: Colors.orange,
+      roles: ['profesor'], // Solo profesores pueden acceder a reforzamiento
+    ),
+    DashboardItem(
       title: 'Mi Asistencia',
       icon: Icons.person_pin_circle,
       color: Colors.purple,
@@ -230,6 +236,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
         return;
       case 'Tomar Asistencia':
         _navigateToSubjectSelection('Tomar Asistencia');
+        return;
+      case 'Reforzamiento':
+        // Por ahora muestra mensaje de en desarrollo
+        setState(() {
+          _selectedIndex = index + 1;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Módulo de Reforzamiento en desarrollo'),
+            duration: Duration(seconds: 2),
+          ),
+        );
         return;
       case 'Mi Asistencia':
         _navigateToStudentSubjectSelection();
