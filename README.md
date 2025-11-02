@@ -183,10 +183,93 @@ Todas las respuestas del API deben seguir este formato:
 
 ## Requisitos del Sistema
 
-- Flutter SDK 3.0+
-- Dart 3.0+
-- Android Studio / VS Code
-- Dispositivo Android 5.0+ o iOS 11.0+
+Para que esta aplicación funcione correctamente en cualquier máquina, se requieren las siguientes versiones:
+
+### Versiones Requeridas
+
+#### Flutter
+- **Flutter SDK**: `>=3.0.0` (recomendado: última versión estable)
+- **Dart SDK**: `>=3.0.0 <4.0.0` (viene incluido con Flutter)
+
+#### Android Studio
+- **Android Studio**: `Giraffe | 2022.3.1` o superior (recomendado: última versión estable)
+- **Android Gradle Plugin**: `8.9.1` (se configura automáticamente)
+- **Gradle**: `8.12` (se descarga automáticamente)
+
+#### Java / JDK
+- **Java JDK**: `17` (Java 17 LTS) - **Recomendado**
+  - Puede ser OpenJDK 17, Oracle JDK 17, o Amazon Corretto 17
+  - **Alternativa**: Java 21 LTS (también compatible, más reciente)
+  - **Mínimo**: Java 11 (pero Java 17 o 21 es recomendado para mejor rendimiento)
+
+#### Android SDK
+- **compileSdk**: `35` (Android 15)
+- **targetSdk**: `35` (Android 15)
+- **minSdk**: `21` (Android 5.0 Lollipop)
+- **NDK**: `27.0.12077973` (se configura automáticamente)
+
+#### Kotlin
+- **Kotlin**: `2.1.0` (se configura automáticamente)
+
+### Compatibilidad de Dispositivos
+
+- **Android**: Dispositivos con Android 5.0 (API 21) o superior
+- **iOS**: No configurado en este proyecto (solo Android)
+
+### Verificación de Instalación
+
+Después de instalar todo, ejecuta:
+
+```bash
+flutter doctor
+```
+
+Este comando te mostrará qué componentes están instalados correctamente y cuáles faltan.
+
+### Instalación Recomendada
+
+1. **Instalar Flutter**:
+   - Descarga Flutter desde: https://flutter.dev/docs/get-started/install
+   - Descomprime y agrega Flutter a tu PATH
+   - Ejecuta `flutter doctor` para verificar
+
+2. **Instalar Android Studio**:
+   - Descarga desde: https://developer.android.com/studio
+   - Durante la instalación, asegúrate de instalar:
+     - Android SDK
+     - Android SDK Platform-Tools
+     - Android SDK Build-Tools
+     - Android Emulator (opcional)
+
+3. **Instalar Java JDK 17 o 21** (recomendado):
+   - **OpenJDK 17 LTS**: https://adoptium.net/temurin/releases/?version=17 (recomendado)
+   - **OpenJDK 21 LTS**: https://adoptium.net/temurin/releases/?version=21 (más reciente)
+   - **Oracle JDK 17**: https://www.oracle.com/java/technologies/javase/jdk17-archive-downloads.html
+   - Configura la variable de entorno `JAVA_HOME` apuntando a la instalación de Java 17 o 21
+   - **Nota**: También funciona con Java 11, pero Java 17/21 es recomendado
+
+4. **Configurar Variables de Entorno** (Windows):
+   ```
+   ANDROID_HOME = C:\Users\<tu_usuario>\AppData\Local\Android\Sdk
+   JAVA_HOME = C:\Program Files\Java\jdk-17
+   # O para Java 21:
+   # JAVA_HOME = C:\Program Files\Java\jdk-21
+   PATH = %PATH%;%FLUTTER_HOME%\bin;%ANDROID_HOME%\platform-tools;%JAVA_HOME%\bin
+   ```
+
+5. **Aceptar Licencias de Android**:
+   ```bash
+   flutter doctor --android-licenses
+   ```
+
+### Solución de Problemas
+
+Si encuentras errores al compilar:
+
+1. **Error de Java**: Verifica que `JAVA_HOME` apunte a Java 17 o 21 (recomendado). También funciona con Java 11, pero es mejor usar una versión más reciente
+2. **Error de Android SDK**: Ejecuta `flutter doctor` y sigue las instrucciones
+3. **Error de Gradle**: Asegúrate de tener conexión a internet para descargar Gradle automáticamente
+4. **Versión de Flutter**: Ejecuta `flutter upgrade` para actualizar a la última versión
 
 ## Contribución
 
