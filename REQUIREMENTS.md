@@ -7,7 +7,7 @@
 | **Flutter SDK** | `>=3.0.0` | Recomendado: última versión estable |
 | **Dart SDK** | `>=3.0.0 <4.0.0` | Incluido con Flutter |
 | **Android Studio** | `Giraffe \| 2022.3.1+` | O última versión estable |
-| **Java JDK** | `17` (Java 17 LTS) | Recomendado: Java 17 o 21 (LTS). Mínimo: Java 11 |
+| **Java JDK** | `17` (Java 17 LTS) | Recomendado: OpenJDK 17 (Temurin, cualquier versión 17.x funciona, ej: 17.0.16). También Java 21 LTS. Mínimo: Java 11 |
 | **Android SDK** | `35` (Android 15) | Para compileSdk y targetSdk |
 | **minSdk** | `21` (Android 5.0) | Compatibilidad mínima |
 | **Gradle** | `8.12` | Se descarga automáticamente |
@@ -25,7 +25,7 @@ flutter --version
 
 # Verificar Java
 java -version
-# Debe mostrar: version "17.x.x" o "21.x.x" (recomendado)
+# Debe mostrar: version "17.x.x" (OpenJDK Temurin recomendado, ej: 17.0.16) o "21.x.x"
 # También acepta: version "11.x.x" (mínimo)
 
 # Verificar variables de entorno (Windows)
