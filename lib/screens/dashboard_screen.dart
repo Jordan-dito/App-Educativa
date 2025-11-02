@@ -12,6 +12,8 @@ import 'attendance/take_attendance_screen.dart';
 import 'attendance/student_attendance_screen.dart';
 import 'grades/teacher_grades_list_screen.dart';
 import 'grades/student_grades_list_screen.dart';
+import 'reforzamiento/teacher_reforzamiento_screen.dart';
+import 'reforzamiento/student_reforzamiento_screen.dart';
 import '../models/subject_model.dart';
 import '../models/subject_configuration_model.dart';
 import '../services/student_subject_service.dart';
@@ -238,17 +240,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _navigateToSubjectSelection('Tomar Asistencia');
         return;
       case 'Reforzamiento':
-        // Por ahora muestra mensaje de en desarrollo
-        setState(() {
-          _selectedIndex = index + 1;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Módulo de Reforzamiento en desarrollo'),
-            duration: Duration(seconds: 2),
-          ),
-        );
-        return;
+        if (widget.user.rol == 'profesor') {
+          screen = const TeacherReforzamientoScreen();
+        } else if (widget.user.rol == 'estudiante') {
+          screen = const StudentReforzamientoScreen();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No tienes acceso a este módulo')),
+          );
+          return;
+        }
+        break;
       case 'Mi Asistencia':
         _navigateToStudentSubjectSelection();
         return;

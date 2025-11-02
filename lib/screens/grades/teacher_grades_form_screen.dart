@@ -79,14 +79,18 @@ class _TeacherGradesFormScreenState extends State<TeacherGradesFormScreen> {
     final validNotes = notes.where((n) => n != null).toList();
 
     if (validNotes.isNotEmpty && validNotes.length > 0) {
-      setState(() {
-        _calculatedAverage =
-            validNotes.reduce((a, b) => a! + b!)! / validNotes.length;
-      });
+      if (mounted) {
+        setState(() {
+          _calculatedAverage =
+              validNotes.reduce((a, b) => a! + b!)! / validNotes.length;
+        });
+      }
     } else {
-      setState(() {
-        _calculatedAverage = null;
-      });
+      if (mounted) {
+        setState(() {
+          _calculatedAverage = null;
+        });
+      }
     }
   }
 
@@ -123,6 +127,7 @@ class _TeacherGradesFormScreenState extends State<TeacherGradesFormScreen> {
       return;
     }
 
+    if (!mounted) return;
     setState(() => _isLoading = true);
 
     try {
@@ -137,16 +142,23 @@ class _TeacherGradesFormScreenState extends State<TeacherGradesFormScreen> {
         nota4: int.tryParse(_nota4Controller.text)?.toDouble(),
       );
 
-      _showSuccess('Notas guardadas exitosamente');
-      Navigator.pop(context, true);
+      if (mounted) {
+        _showSuccess('Notas guardadas exitosamente');
+        Navigator.pop(context, true);
+      }
     } catch (e) {
-      _showError('Error al guardar notas: $e');
+      if (mounted) {
+        _showError('Error al guardar notas: $e');
+      }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
   void _showSuccess(String message) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -156,6 +168,7 @@ class _TeacherGradesFormScreenState extends State<TeacherGradesFormScreen> {
   }
 
   void _showError(String message) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),

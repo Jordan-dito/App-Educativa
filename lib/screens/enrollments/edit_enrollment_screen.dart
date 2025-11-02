@@ -122,9 +122,11 @@ class _EditEnrollmentScreenState extends State<EditEnrollmentScreen> {
     }
   }
 
-  // Obtener grados únicos
+  // Obtener grados únicos (solo básico: 1°, 2°, 3°)
   List<String> get _uniqueGrades {
-    return _students.map((s) => s.grade).toSet().toList()..sort();
+    final allGrades = _students.map((s) => s.grade).toSet().toList();
+    final basicGrades = ['1°', '2°', '3°'];
+    return allGrades.where((g) => basicGrades.contains(g)).toList()..sort();
   }
 
   // Obtener secciones únicas para un grado específico

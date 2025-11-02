@@ -36,6 +36,7 @@ class _TeacherStudentsGradesScreenState
   }
 
   Future<void> _loadStudentsAndGrades() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
 
     try {
@@ -56,19 +57,24 @@ class _TeacherStudentsGradesScreenState
         gradesMap[grade.estudianteId] = grade;
       }
 
-      setState(() {
-        _students = students;
-        _grades = gradesMap;
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _students = students;
+          _grades = gradesMap;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       print('❌ ERROR TeacherStudentsGradesScreen._loadStudentsAndGrades: $e');
-      _showError('Error al cargar datos: $e');
-      setState(() => _isLoading = false);
+      if (mounted) {
+        _showError('Error al cargar datos: $e');
+        setState(() => _isLoading = false);
+      }
     }
   }
 
   void _showError(String message) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -79,6 +85,7 @@ class _TeacherStudentsGradesScreenState
 
   Future<void> _navigateToGradesForm(
       Map<String, dynamic> studentData, Grade? existingGrade) async {
+    if (!mounted) return;
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
@@ -92,7 +99,7 @@ class _TeacherStudentsGradesScreenState
       ),
     );
 
-    if (result == true) {
+    if (result == true && mounted) {
       // Recargar datos después de guardar
       await _loadStudentsAndGrades();
     }

@@ -12,18 +12,9 @@ class _StudentsScreenState extends State<StudentsScreen> {
   String _selectedGrade = 'Todos';
   final List<String> _grades = [
     'Todos',
-    'Preescolar',
     '1°',
     '2°',
-    '3°',
-    '4°',
-    '5°',
-    '6°',
-    '7°',
-    '8°',
-    '9°',
-    '10°',
-    '11°'
+    '3°'
   ];
   bool _isLoading = false;
   String? _error;
@@ -226,18 +217,9 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
   String _selectedSection = 'A';
   
   final List<String> _grades = [
-    'Preescolar',
     '1°',
     '2°',
-    '3°',
-    '4°',
-    '5°',
-    '6°',
-    '7°',
-    '8°',
-    '9°',
-    '10°',
-    '11°'
+    '3°'
   ];
   final List<String> _sections = ['A', 'B', 'C', 'D'];
 
