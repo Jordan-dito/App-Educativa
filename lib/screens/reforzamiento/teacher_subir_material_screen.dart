@@ -292,7 +292,7 @@ class _TeacherSubirMaterialScreenState
               const SizedBox(height: 16),
 
               // Tipo de contenido
-              Text(
+              const Text(
                 'Tipo de contenido *',
                 style: TextStyle(
                   fontWeight: FontWeight.w600,
@@ -373,10 +373,10 @@ class _TeacherSubirMaterialScreenState
               if (_tipoContenido == 'link' || _tipoContenido == 'video') ...[
                 TextFormField(
                   controller: _urlController,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     labelText: 'URL *',
-                    prefixIcon: const Icon(Icons.link),
-                    border: const OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.link),
+                    border: OutlineInputBorder(),
                     hintText: 'https://...',
                   ),
                   keyboardType: TextInputType.url,
@@ -384,7 +384,8 @@ class _TeacherSubirMaterialScreenState
                     if (value == null || value.isEmpty) {
                       return 'La URL es requerida';
                     }
-                    if (!Uri.tryParse(value)!.hasAbsolutePath) {
+                    final uri = Uri.tryParse(value);
+                    if (uri == null || !uri.hasAbsolutePath) {
                       return 'URL inválida';
                     }
                     return null;

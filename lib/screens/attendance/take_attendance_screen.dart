@@ -19,7 +19,7 @@ class _TakeAttendanceScreenState extends State<TakeAttendanceScreen> {
   final AttendanceApiService _attendanceService = AttendanceApiService();
 
   List<Map<String, dynamic>> _students = [];
-  Map<int, AttendanceStatus> _attendanceStatus = {};
+  final Map<int, AttendanceStatus> _attendanceStatus = {};
   DateTime _selectedDate = DateTime.now();
   bool _isLoading = true;
   bool _isSaving = false;

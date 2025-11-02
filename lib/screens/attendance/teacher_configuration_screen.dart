@@ -28,7 +28,7 @@ class _TeacherConfigurationScreenState extends State<TeacherConfigurationScreen>
   // Estado del formulario
   DateTime _startDate = DateTime.now();
   DateTime _endDate = DateTime.now().add(const Duration(days: 120));
-  List<String> _selectedDays = [];
+  final List<String> _selectedDays = [];
   bool _isLoading = false;
   bool _isSaving = false;
 

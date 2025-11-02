@@ -20,6 +20,7 @@ class _TeacherReforzamientoScreenState
 
   List<Subject> _subjects = [];
   int? _currentProfesorId;
+  String? _currentProfesorName;
   bool _isLoading = true;
 
   @override
@@ -52,6 +53,7 @@ class _TeacherReforzamientoScreenState
       );
 
       _currentProfesorId = teacher.id;
+      _currentProfesorName = teacher.fullName;
       if (_currentProfesorId == null) {
         throw Exception('No se pudo obtener el ID del profesor');
       }
@@ -60,9 +62,17 @@ class _TeacherReforzamientoScreenState
       final subjects = await _subjectService
           .getSubjectsByTeacher(_currentProfesorId.toString());
 
+      // Completar el nombre del profesor en las materias que no lo tengan
+      final subjectsWithTeacher = subjects.map((subject) {
+        if (subject.teacherName == null || subject.teacherName!.isEmpty) {
+          return subject.copyWith(teacherName: _currentProfesorName);
+        }
+        return subject;
+      }).toList();
+
       if (mounted) {
         setState(() {
-          _subjects = subjects;
+          _subjects = subjectsWithTeacher;
           _isLoading = false;
         });
       }

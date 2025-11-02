@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/subject_model.dart';
 import '../../models/material_reforzamiento_model.dart';
+import '../../models/grade_model.dart';
 import '../../services/user_service.dart';
 import '../../services/student_subject_service.dart';
 import '../../services/enrollment_api_service.dart';
@@ -18,7 +19,7 @@ class StudentReforzamientoScreen extends StatefulWidget {
 }
 
 class _StudentReforzamientoScreenState extends State<StudentReforzamientoScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   final StudentSubjectService _subjectService = StudentSubjectService();
   final ReforzamientoApiService _reforzamientoService =
       ReforzamientoApiService();
@@ -29,17 +30,19 @@ class _StudentReforzamientoScreenState extends State<StudentReforzamientoScreen>
   List<Subject> _subjects = [];
   Map<int, List<MaterialReforzamiento>> _materialesPorMateria = {};
   bool _isLoading = true;
-  late TabController _tabController;
+  TabController? _tabController;
 
   @override
   void initState() {
     super.initState();
+    // Inicializar TabController con length mínimo para evitar errores
+    _tabController = TabController(length: 1, vsync: this);
     _loadData();
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
+    _tabController?.dispose();
     super.dispose();
   }
 
@@ -58,7 +61,8 @@ class _StudentReforzamientoScreenState extends State<StudentReforzamientoScreen>
       }
 
       // Obtener estudiante_id
-      final estudianteId = await _enrollmentService.getStudentIdByUserId(user.id!);
+      final estudianteId =
+          await _enrollmentService.getStudentIdByUserId(user.id!);
       if (estudianteId == null) {
         if (mounted) {
           _showError('No se encontró información del estudiante');
@@ -68,63 +72,166 @@ class _StudentReforzamientoScreenState extends State<StudentReforzamientoScreen>
       }
 
       // Cargar materias inscritas
+      print(
+          '📚 DEBUG StudentReforzamientoScreen: Obteniendo materias inscritas...');
       final allSubjects = await _subjectService.getStudentSubjects(user.id!);
+      print(
+          '📚 DEBUG StudentReforzamientoScreen: ${allSubjects.length} materias inscritas encontradas');
+      for (var subj in allSubjects) {
+        print('   - ${subj.name} (ID: ${subj.id}, año: ${subj.academicYear})');
+      }
 
       // Obtener todas las notas del estudiante para calcular promedios
-      final allGrades = await _gradesService.getAllStudentGrades(
-        estudianteId: estudianteId,
-      );
+      print(
+          '📊 DEBUG StudentReforzamientoScreen: Obteniendo notas para estudiante_id: $estudianteId');
+      List<Grade> allGrades = [];
+      try {
+        allGrades = await _gradesService.getAllStudentGrades(
+          estudianteId: estudianteId,
+        );
+        print(
+            '📊 DEBUG StudentReforzamientoScreen: ${allGrades.length} notas encontradas');
+        if (allGrades.isEmpty) {
+          print(
+              '⚠️ DEBUG StudentReforzamientoScreen: NO se encontraron notas para el estudiante $estudianteId');
+        } else {
+          for (var grade in allGrades) {
+            print(
+                '   - Materia ${grade.materiaId}: promedio=${grade.promedio}, año=${grade.anioAcademico}');
+          }
+        }
+      } catch (e) {
+        print('❌ ERROR StudentReforzamientoScreen: Error al obtener notas: $e');
+        // Continuar con lista vacía para que al menos se muestren las materias si hay
+        allGrades = [];
+      }
 
       // Filtrar solo materias donde el estudiante está REPROBADO (promedio < 60)
-      // Y donde el ciclo académico ya terminó (fecha_fin ya pasó)
+      // Mostrar todas las materias reprobadas, independientemente del estado del ciclo
+      // Esto permite que los estudiantes vean su estado de inmediato
       final reprobadosMap = <int, double>{}; // materiaId -> promedio
       final fechaActual = DateTime.now();
+      print('📅 DEBUG StudentReforzamientoScreen: Fecha actual: $fechaActual');
 
       for (var grade in allGrades) {
         if (grade.promedio != null && grade.promedio! < 60.0) {
-          // Verificar que el ciclo académico ya terminó
+          print(
+              '🔍 DEBUG StudentReforzamientoScreen: Evaluando materia ${grade.materiaId} con promedio ${grade.promedio}');
+
+          final materiaId = grade.materiaId;
+          final anioAcademico =
+              int.tryParse(grade.anioAcademico) ?? DateTime.now().year;
+
+          print(
+              '   Materia $materiaId reprobada con promedio ${grade.promedio} (año $anioAcademico)');
+
+          // Agregar directamente a reprobados - sin validar ciclo terminado
+          // Si el estudiante está reprobado, debe ver el material de reforzamiento
+          reprobadosMap[materiaId] = grade.promedio!;
+          print('   ✅ Materia ${grade.materiaId} agregada a reprobados');
+
+          // Opcional: Verificar configuración solo para logging
           try {
-            final materiaId = grade.materiaId;
-            final anioAcademico = int.tryParse(grade.anioAcademico) ?? DateTime.now().year;
-            
-            // Obtener configuración de la materia para verificar fecha de fin
             final config = await _attendanceService.getSubjectConfiguration(
               materiaId,
               anioAcademico,
             );
-
-            // Solo incluir si el ciclo ya terminó (fecha actual >= fecha fin)
             if (config != null) {
-              // Comparar solo las fechas (sin hora)
-              final fechaActualSinHora = DateTime(fechaActual.year, fechaActual.month, fechaActual.day);
-              final fechaFinSinHora = DateTime(config.endDate.year, config.endDate.month, config.endDate.day);
-              final cicloTerminado = fechaActualSinHora.isAfter(fechaFinSinHora) || fechaActualSinHora.isAtSameMomentAs(fechaFinSinHora);
-              
-              if (cicloTerminado) {
-                reprobadosMap[materiaId] = grade.promedio!;
-              }
+              final fechaActualSinHora = DateTime(
+                  fechaActual.year, fechaActual.month, fechaActual.day);
+              final fechaFinSinHora = DateTime(config.endDate.year,
+                  config.endDate.month, config.endDate.day);
+              final cicloTerminado =
+                  fechaActualSinHora.isAfter(fechaFinSinHora) ||
+                      fechaActualSinHora.isAtSameMomentAs(fechaFinSinHora);
+              print(
+                  '   📅 Configuración: fecha_fin=${config.endDate}, ciclo_terminado=$cicloTerminado');
             } else {
-              // Si no hay configuración, por seguridad NO mostrar (ciclo podría estar en curso)
-              print('⚠️ No se encontró configuración para materia $materiaId, año $anioAcademico');
+              print(
+                  '   ⚠️ No se encontró configuración para materia $materiaId, año $anioAcademico (pero se mostrará igualmente)');
             }
           } catch (e) {
-            print('❌ Error validando fecha fin para materia ${grade.materiaId}: $e');
-            // Por seguridad, no incluir materias con error
+            print(
+                '   ⚠️ Error al verificar configuración para materia ${grade.materiaId}: $e (pero se mostrará igualmente)');
+          }
+        } else if (grade.promedio != null) {
+          print(
+              '   Materia ${grade.materiaId} NO reprobada: promedio=${grade.promedio} (>= 60)');
+        }
+      }
+
+      print(
+          '📋 DEBUG StudentReforzamientoScreen: ${reprobadosMap.length} materias reprobadas encontradas:');
+      reprobadosMap.forEach((materiaId, promedio) {
+        print('   - Materia $materiaId: promedio $promedio');
+      });
+
+      // Crear un mapa de materias inscritas por materiaId para búsqueda rápida
+      final materiasInscritasMap = <int, Subject>{};
+      for (var subject in allSubjects) {
+        final materiaId = int.tryParse(subject.id ?? '');
+        if (materiaId != null) {
+          materiasInscritasMap[materiaId] = subject;
+        }
+      }
+
+      // Crear lista de materias reprobadas
+      // Incluir materias inscritas que están reprobadas
+      final subjects = <Subject>[];
+      final materiasReprobadasIds = <int>{};
+
+      for (var entry in reprobadosMap.entries) {
+        final materiaId = entry.key;
+        final promedio = entry.value;
+        
+        materiasReprobadasIds.add(materiaId);
+        
+        // Buscar si la materia está inscrita
+        if (materiasInscritasMap.containsKey(materiaId)) {
+          // Usar la materia inscrita
+          final subject = materiasInscritasMap[materiaId]!;
+          print(
+              '   ✅ Materia ${subject.name} (ID: $materiaId) está inscrita Y reprobada con promedio $promedio');
+          subjects.add(subject);
+        } else {
+          // Buscar información de la materia en las notas para crear un Subject temporal
+          final gradeInfoList = allGrades.where((g) => g.materiaId == materiaId).toList();
+          if (gradeInfoList.isNotEmpty) {
+            final gradeInfo = gradeInfoList.first;
+            
+            // Crear un Subject temporal con los datos disponibles de la nota
+            final subjectTemporal = Subject(
+              id: materiaId.toString(),
+              name: gradeInfo.nombreMateria ?? 'Materia $materiaId',
+              grade: '', // No disponible desde las notas
+              section: '', // No disponible desde las notas
+              teacherId: gradeInfo.profesorId.toString(),
+              teacherName: gradeInfo.nombreProfesor,
+              academicYear: gradeInfo.anioAcademico,
+              isActive: true,
+            );
+            
+            print(
+                '   ⚠️ Materia ${subjectTemporal.name} (ID: $materiaId) está reprobada con promedio $promedio pero NO está inscrita actualmente (año: ${gradeInfo.anioAcademico})');
+            subjects.add(subjectTemporal);
+          } else {
+            print(
+                '   ⚠️ Materia ID $materiaId está en reprobadosMap pero no se encontró información en allGrades');
           }
         }
       }
 
-      // Filtrar materias: solo las reprobadas Y con ciclo terminado
-      final subjects = allSubjects.where((subject) {
-        final materiaId = int.parse(subject.id!);
-        return reprobadosMap.containsKey(materiaId);
-      }).toList();
+      final materiasInscritasCount = materiasInscritasMap.keys.where((k) => materiasReprobadasIds.contains(k)).length;
+      final materiasNoInscritasCount = subjects.length - materiasInscritasCount;
+      print(
+          '📚 DEBUG StudentReforzamientoScreen: ${subjects.length} materias reprobadas encontradas ($materiasInscritasCount inscritas, $materiasNoInscritasCount no inscritas)');
 
       // Cargar materiales para cada materia reprobada
       final Map<int, List<MaterialReforzamiento>> materialesMap = {};
       for (var subject in subjects) {
         try {
-          final materiales = await _reforzamientoService.obtenerMaterialEstudiante(
+          final materiales =
+              await _reforzamientoService.obtenerMaterialEstudiante(
             estudianteId: estudianteId,
             materiaId: int.parse(subject.id!),
           );
@@ -137,25 +244,36 @@ class _StudentReforzamientoScreenState extends State<StudentReforzamientoScreen>
       }
 
       if (mounted) {
+        // Calcular el número correcto de tabs
+        final newTabLength = subjects.isNotEmpty ? subjects.length : 1;
+
+        // Solo recrear el TabController si el número de tabs cambió o si no existe
+        if (_tabController == null || _tabController!.length != newTabLength) {
+          _tabController?.dispose();
+          _tabController = TabController(
+            length: newTabLength,
+            vsync: this,
+          );
+        }
+
+        // Actualizar estado después de asegurar que el TabController está listo
         setState(() {
           _subjects = subjects;
           _materialesPorMateria = materialesMap;
           _isLoading = false;
         });
-
-        // Inicializar TabController después de cargar las materias
-        if (_subjects.isNotEmpty) {
-          _tabController = TabController(
-            length: _subjects.length,
-            vsync: this,
-          );
-        }
       }
     } catch (e) {
       print('❌ ERROR StudentReforzamientoScreen._loadData: $e');
       if (mounted) {
+        // Asegurar que el TabController esté inicializado incluso en caso de error
+        _tabController ??= TabController(length: 1, vsync: this);
         _showError('Error al cargar datos: $e');
-        setState(() => _isLoading = false);
+        setState(() {
+          _subjects = [];
+          _materialesPorMateria = {};
+          _isLoading = false;
+        });
       }
     }
   }
@@ -177,10 +295,10 @@ class _StudentReforzamientoScreenState extends State<StudentReforzamientoScreen>
         title: const Text('Material de Reforzamiento'),
         backgroundColor: Colors.orange,
         foregroundColor: Colors.white,
-        bottom: _isLoading || _subjects.isEmpty
+        bottom: _isLoading || _subjects.isEmpty || _tabController == null
             ? null
             : TabBar(
-                controller: _tabController,
+                controller: _tabController!,
                 isScrollable: true,
                 tabs: _subjects.map((subject) {
                   final tieneMaterial = _materialesPorMateria
@@ -215,7 +333,8 @@ class _StudentReforzamientoScreenState extends State<StudentReforzamientoScreen>
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.check_circle, size: 64, color: Colors.green[300]),
+                      Icon(Icons.check_circle,
+                          size: 64, color: Colors.green[300]),
                       const SizedBox(height: 16),
                       Text(
                         '¡Felicitaciones!',
@@ -240,20 +359,22 @@ class _StudentReforzamientoScreenState extends State<StudentReforzamientoScreen>
                     ],
                   ),
                 )
-              : TabBarView(
-                  controller: _tabController,
-                  children: _subjects.map((subject) {
-                    final materiales = _materialesPorMateria[
-                            int.parse(subject.id!)] ??
-                        [];
+              : _tabController == null
+                  ? const Center(child: CircularProgressIndicator())
+                  : TabBarView(
+                      controller: _tabController!,
+                      children: _subjects.map((subject) {
+                        final materiales =
+                            _materialesPorMateria[int.parse(subject.id!)] ?? [];
 
-                    return _buildMateriaTab(subject, materiales);
-                  }).toList(),
-                ),
+                        return _buildMateriaTab(subject, materiales);
+                      }).toList(),
+                    ),
     );
   }
 
-  Widget _buildMateriaTab(Subject subject, List<MaterialReforzamiento> materiales) {
+  Widget _buildMateriaTab(
+      Subject subject, List<MaterialReforzamiento> materiales) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -425,7 +546,7 @@ class _StudentReforzamientoScreenState extends State<StudentReforzamientoScreen>
                         const SizedBox(width: 4),
                         Text(
                           material.fechaPublicacion != null
-                              ? '${material.fechaPublicacion!.toString().split(' ')[0]}'
+                              ? material.fechaPublicacion!.toString().split(' ')[0]
                               : 'Sin fecha',
                           style: TextStyle(
                             fontSize: 12,
@@ -459,4 +580,3 @@ class _StudentReforzamientoScreenState extends State<StudentReforzamientoScreen>
     );
   }
 }
-

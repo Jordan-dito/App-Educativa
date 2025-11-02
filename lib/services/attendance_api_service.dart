@@ -370,7 +370,7 @@ class AttendanceApiService {
               final tardanzas = resumen['tardanzas'] ?? 0;
               final porcentaje =
                   (resumen['porcentaje_asistencia'] ?? 0.0).toDouble();
-              final meta = 80; // Meta por defecto
+              const meta = 80; // Meta por defecto
 
               // Obtener nombre del estudiante desde data si está disponible
               final studentName =
@@ -428,7 +428,7 @@ class AttendanceApiService {
           .where((a) => a.status == AttendanceStatus.justified)
           .length;
       final porcentaje = total > 0 ? (presentes / total) * 100 : 0.0;
-      final meta = 80;
+      const meta = 80;
 
       print(
           '🔧 DEBUG AttendanceApiService.getStudentAttendanceSummary (calculado):');
@@ -667,7 +667,7 @@ class AttendanceApiService {
         'asistencias': asistencias,
       };
 
-      final url = '$_baseUrl/api/asistencia.php?action=tomar';
+      const url = '$_baseUrl/api/asistencia.php?action=tomar';
 
       print('🔧 DEBUG AttendanceApiService.takeAttendance:');
       print('   URL: $url');

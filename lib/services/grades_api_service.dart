@@ -63,17 +63,46 @@ class GradesApiService {
 
         if (jsonResponse['success'] == true) {
           final data = jsonResponse['data'];
+          
+          // Manejar diferentes formatos de respuesta
+          Map<String, dynamic> gradeData;
+          if (data is Map<String, dynamic>) {
+            gradeData = data;
+          } else {
+            // Si data no es un Map, construir uno con los datos que tenemos
+            gradeData = {
+              'estudiante_id': estudianteId,
+              'materia_id': materiaId,
+              'profesor_id': profesorId,
+              'año_academico': anioAcademico,
+              'nota_1': nota1,
+              'nota_2': nota2,
+              'nota_3': nota3,
+              'nota_4': nota4,
+            };
+            // Si hay un ID en la respuesta, agregarlo
+            if (data != null) {
+              gradeData['id'] = data;
+            }
+          }
+          
           print(
               '✅ DEBUG GradesApiService.saveGrade: Notas guardadas exitosamente');
-          return Grade.fromJson(data);
+          print('   Datos parseados: $gradeData');
+          return Grade.fromJson(gradeData);
         } else {
           throw Exception(jsonResponse['message'] ?? 'Error al guardar notas');
         }
       } else {
         throw Exception('Error HTTP: ${response.statusCode}');
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       print('❌ ERROR GradesApiService.saveGrade: $e');
+      print('   Stack trace: $stackTrace');
+      // Si es un error de tipo, proporcionar un mensaje más claro
+      if (e.toString().contains('type') && e.toString().contains('subtype')) {
+        throw Exception('Error de tipo al procesar respuesta del servidor. Intenta guardar nuevamente.');
+      }
       rethrow;
     }
   }
@@ -219,13 +248,41 @@ class GradesApiService {
         if (jsonResponse['success'] == true) {
           final data = jsonResponse['data'];
 
+          print(
+              '🔧 DEBUG GradesApiService.getAllStudentGrades: data type = ${data.runtimeType}');
+          
+          List<dynamic> notasList = [];
+          
           if (data is List) {
+            // Si data es directamente una lista
+            notasList = data;
             print(
-                '✅ DEBUG GradesApiService.getAllStudentGrades: ${data.length} notas encontradas');
-            return data.map((json) => Grade.fromJson(json)).toList();
+                '✅ DEBUG GradesApiService.getAllStudentGrades: ${notasList.length} notas encontradas (data es List)');
+          } else if (data is Map<String, dynamic>) {
+            // Si data es un objeto que contiene una lista de notas
+            if (data['notas'] != null && data['notas'] is List) {
+              notasList = data['notas'] as List;
+              print(
+                  '✅ DEBUG GradesApiService.getAllStudentGrades: ${notasList.length} notas encontradas en data["notas"]');
+              print(
+                  '   Estudiante ID: ${data['estudiante_id']}, Año: ${data['año_academico']}, Promedio general: ${data['promedio_general']}');
+            } else {
+              print(
+                  '⚠️ DEBUG GradesApiService.getAllStudentGrades: data es Map pero no contiene "notas" o no es una lista');
+              print('   Keys disponibles en data: ${data.keys.toList()}');
+              return [];
+            }
           } else {
             print(
-                '⚠️ DEBUG GradesApiService.getAllStudentGrades: No hay notas');
+                '⚠️ DEBUG GradesApiService.getAllStudentGrades: data tiene tipo inesperado: ${data.runtimeType}');
+            return [];
+          }
+
+          if (notasList.isNotEmpty) {
+            return notasList.map((json) => Grade.fromJson(json)).toList();
+          } else {
+            print(
+                '⚠️ DEBUG GradesApiService.getAllStudentGrades: La lista de notas está vacía');
             return [];
           }
         } else {

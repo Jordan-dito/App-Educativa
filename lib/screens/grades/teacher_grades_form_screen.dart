@@ -78,7 +78,7 @@ class _TeacherGradesFormScreenState extends State<TeacherGradesFormScreen> {
 
     final validNotes = notes.where((n) => n != null).toList();
 
-    if (validNotes.isNotEmpty && validNotes.length > 0) {
+    if (validNotes.isNotEmpty && validNotes.isNotEmpty) {
       if (mounted) {
         setState(() {
           _calculatedAverage =

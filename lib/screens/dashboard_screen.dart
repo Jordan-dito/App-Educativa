@@ -96,7 +96,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
       title: 'Reforzamiento',
       icon: Icons.school,
       color: Colors.orange,
-      roles: ['profesor'], // Solo profesores pueden acceder a reforzamiento
+      roles: [
+        'profesor',
+        'estudiante'
+      ], // Profesores y estudiantes pueden acceder a reforzamiento
     ),
     DashboardItem(
       title: 'Mi Asistencia',
@@ -114,9 +117,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // Obtener menús según el rol del usuario
   List<DashboardItem> get _menuItems {
-    return _allMenuItems
-        .where((item) => item.roles.contains(widget.user.rol.toLowerCase()))
-        .toList();
+    final userRol = widget.user.rol.toLowerCase().trim();
+    print('🔍 DEBUG DashboardScreen._menuItems: Rol del usuario: "$userRol"');
+
+    final filteredItems = _allMenuItems.where((item) {
+      final hasRole = item.roles.contains(userRol);
+      print('   - ${item.title}: roles=${item.roles}, coincide=$hasRole');
+      return hasRole;
+    }).toList();
+
+    print(
+        '📋 DEBUG DashboardScreen._menuItems: ${filteredItems.length} items encontrados para rol "$userRol"');
+    return filteredItems;
   }
 
   @override
@@ -736,7 +748,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 TextEditingController();
             List<Subject> filteredSubjects = teacherSubjects;
 
-            void _filterSubjects(String query) {
+            void filterSubjects(String query) {
               setState(() {
                 if (query.isEmpty) {
                   filteredSubjects = teacherSubjects;
@@ -774,7 +786,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 icon: const Icon(Icons.clear),
                                 onPressed: () {
                                   searchController.clear();
-                                  _filterSubjects('');
+                                  filterSubjects('');
                                 },
                               )
                             : null,
@@ -786,7 +798,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16, vertical: 12),
                       ),
-                      onChanged: _filterSubjects,
+                      onChanged: filterSubjects,
                     ),
                     const SizedBox(height: 16),
                     // Lista de materias con altura fija

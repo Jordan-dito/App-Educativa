@@ -32,33 +32,59 @@ class MaterialReforzamiento {
   });
 
   factory MaterialReforzamiento.fromJson(Map<String, dynamic> json) {
-    return MaterialReforzamiento(
-      id: json['id'],
-      materiaId: json['materia_id'] ?? json['materiaId'] ?? 0,
-      estudianteId: json['estudiante_id'] ?? json['estudianteId'],
-      profesorId: json['profesor_id'] ?? json['profesorId'] ?? 0,
-      anioAcademico: json['año_academico']?.toString() ?? 
-                    json['anio_academico']?.toString() ?? 
-                    json['anioAcademico']?.toString() ?? 
-                    DateTime.now().year.toString(),
-      titulo: json['titulo'] ?? json['title'] ?? '',
-      descripcion: json['descripcion'] ?? json['description'],
-      tipoContenido: json['tipo_contenido'] ?? json['tipoContenido'] ?? 'texto',
-      contenido: json['contenido'] ?? json['content'],
-      archivoNombre: json['archivo_nombre'] ?? json['archivoNombre'] ?? json['file_name'],
-      archivoRuta: json['archivo_ruta'] ?? json['archivoRuta'] ?? json['file_path'],
-      urlExterna: json['url_externa'] ?? json['urlExterna'] ?? json['url'],
-      fechaPublicacion: json['fecha_publicacion'] != null
-          ? DateTime.parse(json['fecha_publicacion'])
-          : json['fechaPublicacion'] != null
-              ? DateTime.parse(json['fechaPublicacion'])
-              : null,
-      fechaVencimiento: json['fecha_vencimiento'] != null
-          ? DateTime.parse(json['fecha_vencimiento'])
-          : json['fechaVencimiento'] != null
-              ? DateTime.parse(json['fechaVencimiento'])
-              : null,
-    );
+    try {
+      // Función helper para convertir a int de forma segura
+      int parseInt(dynamic value, int defaultValue) {
+        if (value == null) return defaultValue;
+        if (value is int) return value;
+        if (value is String) {
+          final parsed = int.tryParse(value);
+          return parsed ?? defaultValue;
+        }
+        if (value is double) return value.toInt();
+        return defaultValue;
+      }
+
+      // Función helper para parsear fechas de forma segura
+      DateTime? parseDateTime(dynamic value) {
+        if (value == null) return null;
+        if (value is DateTime) return value;
+        if (value is String) {
+          try {
+            return DateTime.parse(value);
+          } catch (e) {
+            return null;
+          }
+        }
+        return null;
+      }
+
+      return MaterialReforzamiento(
+        id: json['id'] != null ? parseInt(json['id'], 0) : null,
+        materiaId: parseInt(json['materia_id'] ?? json['materiaId'], 0),
+        estudianteId: json['estudiante_id'] != null 
+            ? parseInt(json['estudiante_id'], 0)
+            : (json['estudianteId'] != null ? parseInt(json['estudianteId'], 0) : null),
+        profesorId: parseInt(json['profesor_id'] ?? json['profesorId'], 0),
+        anioAcademico: json['año_academico']?.toString() ?? 
+                      json['anio_academico']?.toString() ?? 
+                      json['anioAcademico']?.toString() ?? 
+                      DateTime.now().year.toString(),
+        titulo: json['titulo']?.toString() ?? json['title']?.toString() ?? '',
+        descripcion: json['descripcion']?.toString() ?? json['description']?.toString(),
+        tipoContenido: json['tipo_contenido']?.toString() ?? json['tipoContenido']?.toString() ?? 'texto',
+        contenido: json['contenido']?.toString() ?? json['content']?.toString(),
+        archivoNombre: json['archivo_nombre']?.toString() ?? json['archivoNombre']?.toString() ?? json['file_name']?.toString(),
+        archivoRuta: json['archivo_ruta']?.toString() ?? json['archivoRuta']?.toString() ?? json['file_path']?.toString(),
+        urlExterna: json['url_externa']?.toString() ?? json['urlExterna']?.toString() ?? json['url']?.toString(),
+        fechaPublicacion: parseDateTime(json['fecha_publicacion'] ?? json['fechaPublicacion'] ?? json['fecha_creacion'] ?? json['fechaCreacion']),
+        fechaVencimiento: parseDateTime(json['fecha_vencimiento'] ?? json['fechaVencimiento']),
+      );
+    } catch (e) {
+      print('❌ ERROR MaterialReforzamiento.fromJson: Error al parsear JSON: $e');
+      print('   JSON recibido: $json');
+      rethrow;
+    }
   }
 
   Map<String, dynamic> toJson() {

@@ -75,7 +75,7 @@ class _StudentSubjectEnrollmentScreenState
           final isActive = subject.isActive;
 
           print(
-              '🔍 DEBUG: ${subject.name} - Grado: ${subject.grade} (${matchesGrade}) - Sección: ${subject.section} (${matchesSection}) - Activa: ${isActive}');
+              '🔍 DEBUG: ${subject.name} - Grado: ${subject.grade} ($matchesGrade) - Sección: ${subject.section} ($matchesSection) - Activa: $isActive');
 
           return matchesGrade && matchesSection && isActive;
         }).toList();

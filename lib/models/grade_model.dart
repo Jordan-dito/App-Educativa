@@ -30,21 +30,50 @@ class Grade {
   });
 
   factory Grade.fromJson(Map<String, dynamic> json) {
-    return Grade(
-      id: json['id'] ?? json['nota_id'],
-      estudianteId: json['estudiante_id'] ?? 0,
-      materiaId: json['materia_id'] ?? 0,
-      profesorId: json['profesor_id'] ?? 0,
-      anioAcademico: json['año_academico']?.toString() ?? json['anio_academico']?.toString() ?? DateTime.now().year.toString(),
-      nota1: json['nota_1'] != null ? (json['nota_1'] is double ? json['nota_1'] : double.tryParse(json['nota_1'].toString())) : null,
-      nota2: json['nota_2'] != null ? (json['nota_2'] is double ? json['nota_2'] : double.tryParse(json['nota_2'].toString())) : null,
-      nota3: json['nota_3'] != null ? (json['nota_3'] is double ? json['nota_3'] : double.tryParse(json['nota_3'].toString())) : null,
-      nota4: json['nota_4'] != null ? (json['nota_4'] is double ? json['nota_4'] : double.tryParse(json['nota_4'].toString())) : null,
-      promedio: json['promedio'] != null ? (json['promedio'] is double ? json['promedio'] : double.tryParse(json['promedio'].toString())) : null,
-      nombreEstudiante: json['nombre_estudiante'] ?? json['estudiante_nombre'],
-      nombreMateria: json['nombre_materia'] ?? json['materia_nombre'],
-      nombreProfesor: json['nombre_profesor'] ?? json['profesor_nombre'],
-    );
+    try {
+      // Función helper para convertir a int de forma segura
+      int parseInt(dynamic value, int defaultValue) {
+        if (value == null) return defaultValue;
+        if (value is int) return value;
+        if (value is String) {
+          final parsed = int.tryParse(value);
+          return parsed ?? defaultValue;
+        }
+        if (value is double) return value.toInt();
+        return defaultValue;
+      }
+
+      // Función helper para convertir a double de forma segura
+      double? parseDouble(dynamic value) {
+        if (value == null) return null;
+        if (value is double) return value;
+        if (value is int) return value.toDouble();
+        if (value is String) {
+          return double.tryParse(value);
+        }
+        return null;
+      }
+
+      return Grade(
+        id: json['id'] != null ? parseInt(json['id'], 0) : (json['nota_id'] != null ? parseInt(json['nota_id'], 0) : null),
+        estudianteId: parseInt(json['estudiante_id'], 0),
+        materiaId: parseInt(json['materia_id'], 0),
+        profesorId: parseInt(json['profesor_id'], 0),
+        anioAcademico: json['año_academico']?.toString() ?? json['anio_academico']?.toString() ?? DateTime.now().year.toString(),
+        nota1: parseDouble(json['nota_1']),
+        nota2: parseDouble(json['nota_2']),
+        nota3: parseDouble(json['nota_3']),
+        nota4: parseDouble(json['nota_4']),
+        promedio: parseDouble(json['promedio']),
+        nombreEstudiante: json['nombre_estudiante'] ?? json['estudiante_nombre'],
+        nombreMateria: json['nombre_materia'] ?? json['materia_nombre'],
+        nombreProfesor: json['nombre_profesor'] ?? json['profesor_nombre'],
+      );
+    } catch (e) {
+      print('❌ ERROR Grade.fromJson: Error al parsear JSON: $e');
+      print('   JSON recibido: $json');
+      rethrow;
+    }
   }
 
   Map<String, dynamic> toJson() {

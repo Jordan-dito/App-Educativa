@@ -19,7 +19,7 @@ class _MaterialPreviewScreenState extends State<MaterialPreviewScreen> {
 
   String get _fileUrl {
     if (widget.material.archivoRuta == null) return '';
-    final baseUrl = 'https://hermanosfrios.alwaysdata.net';
+    const baseUrl = 'https://hermanosfrios.alwaysdata.net';
     return widget.material.archivoRuta!.startsWith('http')
         ? widget.material.archivoRuta!
         : '$baseUrl${widget.material.archivoRuta!.startsWith('/') ? widget.material.archivoRuta! : '/${widget.material.archivoRuta!}'}';
