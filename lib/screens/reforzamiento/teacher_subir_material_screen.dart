@@ -39,12 +39,10 @@ class _TeacherSubirMaterialScreenState
   DateTime? _fechaVencimiento;
   bool _isLoading = false;
 
+  // Para profesores solo permitimos tipos de contenido texto y link
   final List<String> _tiposContenido = [
     'texto',
-    'imagen',
-    'pdf',
-    'link',
-    'video'
+    'link'
   ];
 
   @override
@@ -98,10 +96,33 @@ class _TeacherSubirMaterialScreenState
     }
   }
 
+  String _getTargetLabel() {
+    if (_estudianteSeleccionadoId == null) return 'Material general (todos los reprobados)';
+    final matches = widget.estudiantesReprobados.where((e) => e.estudianteId == _estudianteSeleccionadoId).toList();
+    if (matches.isEmpty) return 'Estudiante (id=$_estudianteSeleccionadoId)';
+    final est = matches.first;
+    return 'Estudiante: ${est.nombreEstudiante}';
+  }
+
   Future<void> _subirMaterial() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
+
+    // Confirmación clara del target
+    final targetLabel = _getTargetLabel();
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirmar subida'),
+        content: Text('Vas a subir material para: $targetLabel\n\n¿Deseas continuar?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancelar')),
+          ElevatedButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Continuar')),
+        ],
+      ),
+    );
+    if (confirm != true) return;
 
     // Validaciones según tipo de contenido
     if (_tipoContenido == 'texto' && _contenidoController.text.isEmpty) {
@@ -235,7 +256,7 @@ class _TeacherSubirMaterialScreenState
               const SizedBox(height: 24),
 
               // Estudiante (opcional)
-              DropdownButtonFormField<int>(
+              DropdownButtonFormField<int?>(
                 decoration: const InputDecoration(
                   labelText: 'Estudiante (opcional)',
                   hintText: 'Selecciona para material específico',
@@ -244,12 +265,12 @@ class _TeacherSubirMaterialScreenState
                 ),
                 value: _estudianteSeleccionadoId,
                 items: [
-                  const DropdownMenuItem<int>(
+                  DropdownMenuItem<int?>(
                     value: null,
-                    child: Text('Material general (todos los reprobados)'),
+                    child: const Text('Material general (todos los reprobados)'),
                   ),
                   ...widget.estudiantesReprobados.map((est) =>
-                      DropdownMenuItem<int>(
+                      DropdownMenuItem<int?>(
                         value: est.estudianteId,
                         child: Text(est.nombreEstudiante),
                       )),

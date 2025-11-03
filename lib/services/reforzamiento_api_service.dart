@@ -299,6 +299,43 @@ class ReforzamientoApiService {
             debugPrint('   2. Que el material tenga la materia_id correcta');
             debugPrint('   3. Que el año académico coincida');
             debugPrint('   4. Si el material es general (estudiante_id=NULL), el endpoint debería incluirlo');
+
+            // Fallback cliente: intentar obtener material general para la materia (sin filtrar por estudiante)
+            // Algunos servidores devuelven material "general" sólo cuando no se pasa estudiante_id.
+            try {
+              if (materiaId != null) {
+                final fallbackParams = {
+                  'action': 'obtener_estudiante',
+                  'materia_id': materiaId.toString(),
+                  'año_academico': (anioAcademico ?? DateTime.now().year).toString(),
+                };
+
+                final fallbackUrl = Uri.parse('$_baseUrl/reforzamiento.php')
+                    .replace(queryParameters: fallbackParams);
+
+                debugPrint('📚 DEBUG ReforzamientoApiService: Intentando fallback URL (material general): $fallbackUrl');
+
+                final fallbackResponse = await http.get(fallbackUrl, headers: _headers);
+                if (fallbackResponse.statusCode == 200 || fallbackResponse.statusCode == 201) {
+                  final Map<String, dynamic> fallbackJson = json.decode(fallbackResponse.body);
+                  if (fallbackJson['success'] == true) {
+                    final fbData = fallbackJson['data'];
+                    if (fbData != null) {
+                      // aceptar formatos análogos: lista o map
+                      if (fbData is List && fbData.isNotEmpty) {
+                        debugPrint('📚 DEBUG ReforzamientoApiService: Fallback encontró ${fbData.length} materiales generales');
+                        materialesList = fbData;
+                      } else if (fbData is Map && fbData['materiales'] != null) {
+                        materialesList = fbData['materiales'] as List;
+                        debugPrint('📚 DEBUG ReforzamientoApiService: Fallback encontró ${materialesList.length} materiales generales');
+                      }
+                    }
+                  }
+                }
+              }
+            } catch (fallbackError) {
+              debugPrint('⚠️ WARNING ReforzamientoApiService: Fallback failed: $fallbackError');
+            }
           }
 
           final materiales = materialesList
