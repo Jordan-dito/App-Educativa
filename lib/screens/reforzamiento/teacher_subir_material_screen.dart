@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
-import 'dart:io';
 import '../../models/subject_model.dart';
 import '../../models/estudiante_reprobado_model.dart';
 import '../../services/reforzamiento_api_service.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:image_picker/image_picker.dart';
 
 class TeacherSubirMaterialScreen extends StatefulWidget {
   final Subject subject;
@@ -35,11 +32,10 @@ class _TeacherSubirMaterialScreenState
 
   int? _estudianteSeleccionadoId;
   String _tipoContenido = 'texto';
-  File? _archivoSeleccionado;
   DateTime? _fechaVencimiento;
   bool _isLoading = false;
 
-  // Para profesores solo permitimos tipos de contenido texto y link
+  // Solo soportamos texto y link
   final List<String> _tiposContenido = [
     'texto',
     'link'
@@ -52,34 +48,6 @@ class _TeacherSubirMaterialScreenState
     _urlController.dispose();
     _contenidoController.dispose();
     super.dispose();
-  }
-
-  Future<void> _seleccionarArchivo() async {
-    try {
-      if (_tipoContenido == 'imagen') {
-        final ImagePicker picker = ImagePicker();
-        final XFile? imagen = await picker.pickImage(
-          source: ImageSource.gallery,
-        );
-        if (imagen != null) {
-          setState(() {
-            _archivoSeleccionado = File(imagen.path);
-          });
-        }
-      } else if (_tipoContenido == 'pdf') {
-        FilePickerResult? result = await FilePicker.platform.pickFiles(
-          type: FileType.custom,
-          allowedExtensions: ['pdf'],
-        );
-        if (result != null && result.files.single.path != null) {
-          setState(() {
-            _archivoSeleccionado = File(result.files.single.path!);
-          });
-        }
-      }
-    } catch (e) {
-      _showError('Error al seleccionar archivo: $e');
-    }
   }
 
   Future<void> _seleccionarFechaVencimiento() async {
@@ -130,14 +98,7 @@ class _TeacherSubirMaterialScreenState
       return;
     }
 
-    if ((_tipoContenido == 'imagen' || _tipoContenido == 'pdf') &&
-        _archivoSeleccionado == null) {
-      _showError('Debes seleccionar un archivo');
-      return;
-    }
-
-    if ((_tipoContenido == 'link' || _tipoContenido == 'video') &&
-        _urlController.text.isEmpty) {
+    if (_tipoContenido == 'link' && _urlController.text.isEmpty) {
       _showError('La URL es requerida');
       return;
     }
@@ -158,8 +119,8 @@ class _TeacherSubirMaterialScreenState
         contenido: _tipoContenido == 'texto'
             ? _contenidoController.text.trim()
             : null,
-        archivo: _archivoSeleccionado,
-        urlExterna: (_tipoContenido == 'link' || _tipoContenido == 'video')
+        archivo: null, // Ya no se usan archivos
+        urlExterna: _tipoContenido == 'link'
             ? _urlController.text.trim()
             : null,
         fechaVencimiento: _fechaVencimiento,
@@ -171,15 +132,25 @@ class _TeacherSubirMaterialScreenState
             const SnackBar(
               content: Text('Material subido exitosamente'),
               backgroundColor: Colors.green,
+              duration: Duration(seconds: 3),
             ),
           );
           Navigator.pop(context, true);
         }
       } else {
-        _showError('Error al subir el material');
+        _showError('Error al subir el material. Por favor, intenta nuevamente.');
       }
     } catch (e) {
-      _showError('Error al subir material: $e');
+      // Mostrar el mensaje de error específico del servidor o uno genérico
+      String errorMessage = 'Error al subir material';
+      if (e.toString().contains('Exception:')) {
+        errorMessage = e.toString().replaceFirst('Exception: ', '');
+      } else if (e.toString().isNotEmpty) {
+        errorMessage = e.toString();
+      }
+      
+      debugPrint('Error completo: $e');
+      _showError(errorMessage);
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -265,9 +236,9 @@ class _TeacherSubirMaterialScreenState
                 ),
                 value: _estudianteSeleccionadoId,
                 items: [
-                  DropdownMenuItem<int?>(
+                  const DropdownMenuItem<int?>(
                     value: null,
-                    child: const Text('Material general (todos los reprobados)'),
+                    child: Text('Material general (todos los reprobados)'),
                   ),
                   ...widget.estudiantesReprobados.map((est) =>
                       DropdownMenuItem<int?>(
@@ -331,7 +302,6 @@ class _TeacherSubirMaterialScreenState
                     onSelected: (selected) {
                       setState(() {
                         _tipoContenido = tipo;
-                        _archivoSeleccionado = null;
                         _urlController.clear();
                         _contenidoController.clear();
                       });
@@ -362,36 +332,7 @@ class _TeacherSubirMaterialScreenState
                 const SizedBox(height: 16),
               ],
 
-              if (_tipoContenido == 'imagen' || _tipoContenido == 'pdf') ...[
-                ElevatedButton.icon(
-                  onPressed: _seleccionarArchivo,
-                  icon: const Icon(Icons.attach_file),
-                  label: Text(_archivoSeleccionado == null
-                      ? 'Seleccionar ${_tipoContenido.toUpperCase()}'
-                      : _archivoSeleccionado!.path.split('/').last),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
-                    foregroundColor: Colors.white,
-                  ),
-                ),
-                if (_archivoSeleccionado != null) ...[
-                  const SizedBox(height: 8),
-                  Chip(
-                    label: Text(
-                      'Archivo seleccionado: ${_archivoSeleccionado!.path.split('/').last}',
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                    onDeleted: () {
-                      setState(() {
-                        _archivoSeleccionado = null;
-                      });
-                    },
-                  ),
-                ],
-                const SizedBox(height: 16),
-              ],
-
-              if (_tipoContenido == 'link' || _tipoContenido == 'video') ...[
+              if (_tipoContenido == 'link') ...[
                 TextFormField(
                   controller: _urlController,
                   decoration: const InputDecoration(

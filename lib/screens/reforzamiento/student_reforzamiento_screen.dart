@@ -230,18 +230,30 @@ class _StudentReforzamientoScreenState extends State<StudentReforzamientoScreen>
       final Map<int, List<MaterialReforzamiento>> materialesMap = {};
       for (var subject in subjects) {
         try {
+          print('📚 Cargando materiales para materia ${subject.name} (ID: ${subject.id})');
           final materiales =
               await _reforzamientoService.obtenerMaterialEstudiante(
             estudianteId: estudianteId,
             materiaId: int.parse(subject.id!),
           );
+          print('📚 Materiales encontrados para ${subject.name}: ${materiales.length}');
           if (materiales.isNotEmpty) {
             materialesMap[int.parse(subject.id!)] = materiales;
+            print('   ✅ Materiales agregados:');
+            for (var mat in materiales) {
+              print('      - ${mat.titulo} (ID: ${mat.id}, EstudianteID: ${mat.estudianteId ?? "NULL (general)"})');
+            }
+          } else {
+            print('   ⚠️ No se encontraron materiales para ${subject.name}');
           }
-        } catch (e) {
-          print('Error cargando materiales para ${subject.name}: $e');
+        } catch (e, stackTrace) {
+          print('❌ ERROR cargando materiales para ${subject.name}: $e');
+          print('   Stack trace: $stackTrace');
+          // Continuar con las demás materias aunque una falle
         }
       }
+      
+      print('📚 RESUMEN: Materiales cargados para ${materialesMap.length} materias de ${subjects.length} materias reprobadas');
 
       if (mounted) {
         // Calcular el número correcto de tabs
