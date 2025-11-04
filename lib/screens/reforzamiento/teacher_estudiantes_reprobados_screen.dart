@@ -4,7 +4,7 @@ import '../../models/estudiante_reprobado_model.dart';
 import '../../services/reforzamiento_api_service.dart';
 import '../../services/attendance_api_service.dart';
 import 'teacher_subir_material_screen.dart';
-import 'teacher_material_estudiante_screen.dart';
+// Removido: teacher_material_estudiante_screen.dart - El estudiante ya puede ver su material
 
 class TeacherEstudiantesReprobadosScreen extends StatefulWidget {
   final Subject subject;
@@ -117,18 +117,8 @@ class _TeacherEstudiantesReprobadosScreenState
     ).then((_) => _loadEstudiantesReprobados());
   }
 
-  void _navigateToMaterialEstudiante(EstudianteReprobado estudiante) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => TeacherMaterialEstudianteScreen(
-          estudianteId: estudiante.estudianteId,
-          estudianteNombre: estudiante.nombreEstudiante,
-          subject: widget.subject,
-        ),
-      ),
-    );
-  }
+  // Removido: _navigateToMaterialEstudiante
+  // El estudiante ya puede ver su material desde su pantalla, no es necesario que el profesor lo vea también
 
   Color _getPromedioColor(double promedio) {
     if (promedio < 40) return Colors.red;
@@ -239,10 +229,7 @@ class _TeacherEstudiantesReprobadosScreenState
                                   ),
                                 ],
                               ),
-                              trailing: const Icon(Icons.arrow_forward_ios,
-                                  size: 16),
-                              onTap: () =>
-                                  _navigateToMaterialEstudiante(estudiante),
+                              // Removido onTap - El estudiante ya puede ver su material desde su pantalla
                             ),
                           );
                         },

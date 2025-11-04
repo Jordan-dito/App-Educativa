@@ -6,11 +6,9 @@ class MaterialReforzamiento {
   final String anioAcademico;
   final String titulo;
   final String? descripcion;
-  final String tipoContenido; // 'texto', 'imagen', 'pdf', 'link', 'video'
+  final String tipoContenido; // 'texto', 'link', 'video'
   final String? contenido; // Para tipo 'texto'
-  final String? archivoNombre;
-  final String? archivoRuta;
-  final String? urlExterna;
+  final String? urlExterna; // Para tipo 'link' o 'video'
   final DateTime? fechaPublicacion;
   final DateTime? fechaVencimiento;
 
@@ -24,8 +22,6 @@ class MaterialReforzamiento {
     this.descripcion,
     required this.tipoContenido,
     this.contenido,
-    this.archivoNombre,
-    this.archivoRuta,
     this.urlExterna,
     this.fechaPublicacion,
     this.fechaVencimiento,
@@ -74,8 +70,6 @@ class MaterialReforzamiento {
         descripcion: json['descripcion']?.toString() ?? json['description']?.toString(),
         tipoContenido: json['tipo_contenido']?.toString() ?? json['tipoContenido']?.toString() ?? 'texto',
         contenido: json['contenido']?.toString() ?? json['content']?.toString(),
-        archivoNombre: json['archivo_nombre']?.toString() ?? json['archivoNombre']?.toString() ?? json['file_name']?.toString(),
-        archivoRuta: json['archivo_ruta']?.toString() ?? json['archivoRuta']?.toString() ?? json['file_path']?.toString(),
         urlExterna: json['url_externa']?.toString() ?? json['urlExterna']?.toString() ?? json['url']?.toString(),
         fechaPublicacion: parseDateTime(json['fecha_publicacion'] ?? json['fechaPublicacion'] ?? json['fecha_creacion'] ?? json['fechaCreacion']),
         fechaVencimiento: parseDateTime(json['fecha_vencimiento'] ?? json['fechaVencimiento']),
@@ -98,8 +92,6 @@ class MaterialReforzamiento {
       if (descripcion != null) 'descripcion': descripcion,
       'tipo_contenido': tipoContenido,
       if (contenido != null) 'contenido': contenido,
-      if (archivoNombre != null) 'archivo_nombre': archivoNombre,
-      if (archivoRuta != null) 'archivo_ruta': archivoRuta,
       if (urlExterna != null) 'url_externa': urlExterna,
       if (fechaPublicacion != null) 'fecha_publicacion': fechaPublicacion!.toIso8601String(),
       if (fechaVencimiento != null) 'fecha_vencimiento': fechaVencimiento!.toIso8601String(),
@@ -122,10 +114,6 @@ class MaterialReforzamiento {
     switch (tipoContenido.toLowerCase()) {
       case 'texto':
         return '📝';
-      case 'imagen':
-        return '🖼️';
-      case 'pdf':
-        return '📄';
       case 'link':
         return '🔗';
       case 'video':

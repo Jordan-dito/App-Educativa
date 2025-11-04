@@ -271,6 +271,43 @@ Si encuentras errores al compilar:
 3. **Error de Gradle**: Asegúrate de tener conexión a internet para descargar Gradle automáticamente
 4. **Versión de Flutter**: Ejecuta `flutter upgrade` para actualizar a la última versión
 
+## Evitar el error "Gradle build failed to produce an .apk file"
+
+Si al ejecutar `flutter build apk` ves el mensaje "Gradle build failed to produce an .apk file" es porque Flutter no encontró el APK donde esperaba después de que Gradle finalizó la compilación. Esto puede pasar por varias razones; aquí tienes por qué ocurre y cómo evitarlo para que quien clone el proyecto no tenga problemas:
+
+- Causas comunes:
+  - NDK o dependencias del SDK faltantes (por ejemplo, la versión de NDK requerida por algunos plugins).
+  - Variables de entorno `ANDROID_SDK_ROOT` / `ANDROID_HOME` o `JAVA_HOME` mal configuradas.
+  - Fallos en el paso final del proceso de Flutter que mueve/copila el APK (permisos, rutas con espacios raras, o problemas transitorios de Gradle).
+
+- Qué hacer antes de clonar/e intentar compilar (lista rápida):
+  1. Ejecutar `flutter doctor` y corregir lo que marque como error.
+  2. Instalar la versión de NDK requerida por el proyecto (ej.: `27.0.12077973`).
+  3. Configurar correctamente `ANDROID_SDK_ROOT` (o `ANDROID_HOME`) y `JAVA_HOME`.
+  4. Usar la `gradle wrapper` incluida (`android\gradlew.bat`) — no dependas de un Gradle global desalineado.
+  5. Si hay problemas, revisar los APKs generados en `android/app/build/outputs/apk/` y `build/app/outputs/flutter-apk/` y compartir los logs de Gradle con `--info`.
+
+- Comandos útiles (Windows PowerShell):
+  - Revisar Flutter y aceptar licencias:
+    ```powershell
+    flutter doctor -v
+    flutter doctor --android-licenses
+    ```
+  - Instalar NDK (ejemplo con sdkmanager):
+    ```powershell
+    "$env:ANDROID_SDK_ROOT\tools\bin\sdkmanager.bat" --list
+    "$env:ANDROID_SDK_ROOT\tools\bin\sdkmanager.bat" "ndk;27.0.12077973"
+    ```
+  - Buscar APKs en el repo:
+    ```powershell
+    Get-ChildItem -Recurse -Filter *.apk | Select FullName,Length,LastWriteTime
+    ```
+
+- Recomendación del repo:
+  - Incluimos `tools/check_android_env.ps1` para que cualquiera pueda comprobar rápidamente si tiene instalado el NDK correcto y si Flutter/SDK están configurados.
+
+Si quieres, puedo añadir más comprobaciones automáticas o un script que intente instalar el NDK requerido (con instrucciones claras). Dime si quieres que lo haga.
+
 ## Contribución
 
 1. Fork el proyecto
