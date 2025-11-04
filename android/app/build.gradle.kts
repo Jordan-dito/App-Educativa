@@ -40,3 +40,30 @@ android {
 flutter {
     source = "../.."
 }
+
+// Configuración global para suprimir warnings de Java 8 obsoleto en dependencias
+tasks.withType<JavaCompile> {
+    options.compilerArgs.add("-Xlint:-options")
+}
+
+// Tarea para asegurar que el APK esté en la ubicación esperada por Flutter (debug y release)
+afterEvaluate {
+    val buildTasks = listOf("assembleDebug", "assembleRelease")
+    
+    buildTasks.forEach { taskName ->
+        tasks.findByName(taskName)?.let { task ->
+            task.doLast {
+                val buildType = if (taskName.contains("Release")) "release" else "debug"
+                val apkSource = file("${layout.buildDirectory.get()}/outputs/flutter-apk/app-$buildType.apk")
+                val flutterRoot = project.rootDir.parentFile
+                val apkTarget = file("${flutterRoot}/build/app/outputs/flutter-apk/app-$buildType.apk")
+                
+                if (apkSource.exists()) {
+                    apkTarget.parentFile.mkdirs()
+                    apkSource.copyTo(apkTarget, overwrite = true)
+                    println("✓ APK $buildType disponible en: ${apkTarget.absolutePath}")
+                }
+            }
+        }
+    }
+}
