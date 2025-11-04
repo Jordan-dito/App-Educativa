@@ -52,9 +52,8 @@ class ReforzamientoApiService {
 
         if (jsonResponse['success'] == true) {
           final List<dynamic> data = jsonResponse['data'] ?? [];
-          final estudiantes = data
-              .map((e) => EstudianteReprobado.fromJson(e))
-              .toList();
+          final estudiantes =
+              data.map((e) => EstudianteReprobado.fromJson(e)).toList();
 
           debugPrint(
               '📚 DEBUG ReforzamientoApiService: ${estudiantes.length} estudiantes reprobados encontrados');
@@ -67,7 +66,8 @@ class ReforzamientoApiService {
         throw Exception('Error HTTP: ${response.statusCode}');
       }
     } catch (e) {
-      debugPrint('❌ ERROR ReforzamientoApiService.obtenerEstudiantesReprobados: $e');
+      debugPrint(
+          '❌ ERROR ReforzamientoApiService.obtenerEstudiantesReprobados: $e');
       rethrow;
     }
   }
@@ -82,7 +82,8 @@ class ReforzamientoApiService {
     String? descripcion,
     required String tipoContenido,
     String? contenido,
-    dynamic archivo, // Deprecated - ya no se usa, pero se mantiene por compatibilidad
+    dynamic
+        archivo, // Deprecated - ya no se usa, pero se mantiene por compatibilidad
     String? urlExterna,
     DateTime? fechaVencimiento,
   }) async {
@@ -122,13 +123,16 @@ class ReforzamientoApiService {
         body: body,
       );
 
-      debugPrint('📤 DEBUG ReforzamientoApiService: Status Code: ${response.statusCode}');
-      debugPrint('📤 DEBUG ReforzamientoApiService: Response Body: ${response.body}');
+      debugPrint(
+          '📤 DEBUG ReforzamientoApiService: Status Code: ${response.statusCode}');
+      debugPrint(
+          '📤 DEBUG ReforzamientoApiService: Response Body: ${response.body}');
 
       // Validar que la respuesta no esté vacía
       if (response.body.isEmpty) {
         debugPrint('❌ ERROR: Respuesta vacía del servidor');
-        throw Exception('El servidor no respondió. Verifica tu conexión a internet.');
+        throw Exception(
+            'El servidor no respondió. Verifica tu conexión a internet.');
       }
 
       // Intentar decodificar JSON
@@ -136,21 +140,27 @@ class ReforzamientoApiService {
       try {
         data = json.decode(response.body);
       } catch (jsonError) {
-        debugPrint('❌ ERROR: No se pudo decodificar la respuesta JSON: $jsonError');
+        debugPrint(
+            '❌ ERROR: No se pudo decodificar la respuesta JSON: $jsonError');
         debugPrint('   Respuesta recibida: ${response.body}');
-        throw Exception('Error en la respuesta del servidor. Por favor, intenta nuevamente.');
+        throw Exception(
+            'Error en la respuesta del servidor. Por favor, intenta nuevamente.');
       }
 
       // Verificar código de estado HTTP
       if (response.statusCode == 200 || response.statusCode == 201) {
         // Verificar que la respuesta tenga el formato esperado
         if (data.containsKey('success')) {
-          final success = data['success'] == true || data['success'] == 'true' || data['success'] == 1;
+          final success = data['success'] == true ||
+              data['success'] == 'true' ||
+              data['success'] == 1;
           if (success) {
             debugPrint('✅ Material subido exitosamente');
             return true;
           } else {
-            final errorMessage = data['message'] ?? data['error'] ?? 'Error desconocido al subir material';
+            final errorMessage = data['message'] ??
+                data['error'] ??
+                'Error desconocido al subir material';
             debugPrint('❌ ERROR: El servidor reportó fallo: $errorMessage');
             throw Exception(errorMessage);
           }
@@ -161,7 +171,9 @@ class ReforzamientoApiService {
         }
       } else {
         // Código de estado HTTP indica error
-        final errorMessage = data['message'] ?? data['error'] ?? 'Error HTTP ${response.statusCode} al subir material';
+        final errorMessage = data['message'] ??
+            data['error'] ??
+            'Error HTTP ${response.statusCode} al subir material';
         debugPrint('❌ ERROR HTTP ${response.statusCode}: $errorMessage');
         throw Exception(errorMessage);
       }
@@ -209,9 +221,7 @@ class ReforzamientoApiService {
 
         if (jsonResponse['success'] == true) {
           final List<dynamic> data = jsonResponse['data'] ?? [];
-          return data
-              .map((e) => MaterialReforzamiento.fromJson(e))
-              .toList();
+          return data.map((e) => MaterialReforzamiento.fromJson(e)).toList();
         } else {
           throw Exception(jsonResponse['message'] ??
               'Error al obtener material del estudiante');
@@ -260,15 +270,17 @@ class ReforzamientoApiService {
 
       final response = await http.get(url, headers: _headers);
 
-      debugPrint('📚 DEBUG ReforzamientoApiService: Status Code: ${response.statusCode}');
-      
+      debugPrint(
+          '📚 DEBUG ReforzamientoApiService: Status Code: ${response.statusCode}');
+
       // Validar que la respuesta no esté vacía
       if (response.body.isEmpty) {
         debugPrint('⚠️ WARNING: Respuesta vacía del servidor');
         return [];
       }
-      
-      debugPrint('📚 DEBUG ReforzamientoApiService: Response Body (primeros 500 chars): ${response.body.length > 500 ? response.body.substring(0, 500) : response.body}');
+
+      debugPrint(
+          '📚 DEBUG ReforzamientoApiService: Response Body (primeros 500 chars): ${response.body.length > 500 ? response.body.substring(0, 500) : response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         Map<String, dynamic> jsonResponse;
@@ -280,11 +292,15 @@ class ReforzamientoApiService {
           throw Exception('Error al procesar respuesta del servidor');
         }
 
-        if (jsonResponse['success'] == true || jsonResponse['success'] == 'true' || jsonResponse['success'] == 1) {
+        if (jsonResponse['success'] == true ||
+            jsonResponse['success'] == 'true' ||
+            jsonResponse['success'] == 1) {
           final data = jsonResponse['data'];
-          
-          debugPrint('📚 DEBUG ReforzamientoApiService: Data type: ${data.runtimeType}');
-          debugPrint('📚 DEBUG ReforzamientoApiService: Data es null: ${data == null}');
+
+          debugPrint(
+              '📚 DEBUG ReforzamientoApiService: Data type: ${data.runtimeType}');
+          debugPrint(
+              '📚 DEBUG ReforzamientoApiService: Data es null: ${data == null}');
 
           // Manejar diferentes formatos de respuesta
           List<dynamic> materialesList;
@@ -293,67 +309,91 @@ class ReforzamientoApiService {
             materialesList = [];
           } else if (data is List) {
             materialesList = data;
-            debugPrint('📚 Data es una Lista con ${materialesList.length} elementos');
+            debugPrint(
+                '📚 Data es una Lista con ${materialesList.length} elementos');
           } else if (data is Map) {
             if (data['materiales'] != null) {
               materialesList = data['materiales'] as List;
-              debugPrint('📚 Data es un Map con clave "materiales" con ${materialesList.length} elementos');
+              debugPrint(
+                  '📚 Data es un Map con clave "materiales" con ${materialesList.length} elementos');
             } else if (data['material'] != null) {
               materialesList = [data['material']];
               debugPrint('📚 Data es un Map con clave "material" (1 elemento)');
             } else {
               // Intentar tratar el Map como si fuera un único material
               materialesList = [data];
-              debugPrint('📚 Data es un Map sin claves conocidas, tratando como material único');
+              debugPrint(
+                  '📚 Data es un Map sin claves conocidas, tratando como material único');
             }
           } else {
-            debugPrint('⚠️ WARNING: Formato de respuesta inesperado: ${data.runtimeType}');
+            debugPrint(
+                '⚠️ WARNING: Formato de respuesta inesperado: ${data.runtimeType}');
             materialesList = [];
           }
 
-          debugPrint('📚 DEBUG ReforzamientoApiService: ${materialesList.length} materiales encontrados en respuesta');
-          
+          debugPrint(
+              '📚 DEBUG ReforzamientoApiService: ${materialesList.length} materiales encontrados en respuesta');
+
           // Filtrar materiales activos y validar que correspondan al estudiante o sean generales
           final materialesFiltrados = <dynamic>[];
           for (var item in materialesList) {
             if (item is Map<String, dynamic>) {
               // Verificar que el material esté activo
-              final estado = item['estado']?.toString().toLowerCase() ?? 'activo';
+              final estado =
+                  item['estado']?.toString().toLowerCase() ?? 'activo';
               if (estado != 'activo') {
-                debugPrint('   ⏭️ Material ID ${item['id']} está inactivo, omitiendo');
+                debugPrint(
+                    '   ⏭️ Material ID ${item['id']} está inactivo, omitiendo');
                 continue;
               }
-              
+
               // Verificar que corresponda al estudiante (específico o general)
-              // Si el backend no retorna estudiante_id, confiamos que el filtro del backend fue correcto
-              final matEstudianteId = item['estudiante_id'];
-              if (item.containsKey('estudiante_id') && matEstudianteId != null) {
-                if (matEstudianteId.toString() != estudianteId.toString()) {
-                  debugPrint('   ⏭️ Material ID ${item['id']} es para otro estudiante (${matEstudianteId}), omitiendo');
+              // El backend ya filtró con (estudiante_id = ? OR estudiante_id IS NULL),
+              // pero verificamos aquí por seguridad
+              final matEstudianteIdValue = item['estudiante_id'];
+              // Si estudiante_id es null, 'null', 'NULL', o string vacío, es material general (válido para todos)
+              final isMaterialGeneral = matEstudianteIdValue == null ||
+                  matEstudianteIdValue.toString().toLowerCase() == 'null' ||
+                  matEstudianteIdValue.toString() == '';
+
+              if (!isMaterialGeneral) {
+                // Es material específico, verificar que coincida con el estudiante
+                final matEstudianteId =
+                    int.tryParse(matEstudianteIdValue.toString());
+                if (matEstudianteId != null &&
+                    matEstudianteId != estudianteId) {
+                  debugPrint(
+                      '   ⏭️ Material ID ${item['id']} es para otro estudiante (${matEstudianteId}), omitiendo');
                   continue;
                 }
               }
-              // Si no tiene estudiante_id en la respuesta, asumimos que es NULL (material general) o que el backend filtró correctamente
-              
+              // Si es material general (NULL) o coincide con el estudiante, es válido
+
               // Verificar materia_id si se proporciona
               // Nota: Si el backend no retorna materia_id, confiamos que el filtro del backend fue correcto
               if (materiaId != null && item.containsKey('materia_id')) {
-                final matMateriaId = int.tryParse(item['materia_id']?.toString() ?? '');
+                final matMateriaId =
+                    int.tryParse(item['materia_id']?.toString() ?? '');
                 if (matMateriaId != null && matMateriaId != materiaId) {
-                  debugPrint('   ⏭️ Material ID ${item['id']} es para otra materia (${matMateriaId}), omitiendo');
+                  debugPrint(
+                      '   ⏭️ Material ID ${item['id']} es para otra materia (${matMateriaId}), omitiendo');
                   continue;
                 }
               }
-              
+
               materialesFiltrados.add(item);
-              final estudianteIdStr = matEstudianteId?.toString() ?? "NULL (general)";
-              debugPrint('   ✅ Material ID ${item['id']} válido - Título: ${item['titulo']}, EstudianteID: $estudianteIdStr');
+              final estudianteIdStr = isMaterialGeneral
+                  ? "NULL (general)"
+                  : matEstudianteIdValue?.toString() ?? "NULL (general)";
+              debugPrint(
+                  '   ✅ Material ID ${item['id']} válido - Título: ${item['titulo']}, EstudianteID: $estudianteIdStr');
             } else {
               debugPrint('   ⚠️ Item no es un Map, tipo: ${item.runtimeType}');
             }
           }
-          
-          debugPrint('📚 DEBUG ReforzamientoApiService: ${materialesFiltrados.length} materiales después de filtrado');
+
+          debugPrint(
+              '📚 DEBUG ReforzamientoApiService: ${materialesFiltrados.length} materiales después de filtrado');
 
           // Parsear materiales
           final materiales = materialesFiltrados
@@ -361,30 +401,36 @@ class ReforzamientoApiService {
                 try {
                   // Agregar campos faltantes si no están en el JSON
                   // (el backend puede no incluirlos si hace JOINs o simplifica la respuesta)
-                  final materialData = Map<String, dynamic>.from(e as Map<String, dynamic>);
-                  
+                  final materialData =
+                      Map<String, dynamic>.from(e as Map<String, dynamic>);
+
                   // Si no tiene materia_id pero tenemos materiaId del parámetro, usarlo
-                  if (!materialData.containsKey('materia_id') && materiaId != null) {
+                  if (!materialData.containsKey('materia_id') &&
+                      materiaId != null) {
                     materialData['materia_id'] = materiaId;
-                    debugPrint('   🔧 Agregando materia_id=$materiaId al material (no estaba en respuesta)');
+                    debugPrint(
+                        '   🔧 Agregando materia_id=$materiaId al material (no estaba en respuesta)');
                   }
-                  
+
                   // Si no tiene profesor_id, usar 0 como fallback (el modelo lo requiere)
                   if (!materialData.containsKey('profesor_id')) {
                     materialData['profesor_id'] = 0;
-                    debugPrint('   🔧 Agregando profesor_id=0 al material (no estaba en respuesta)');
+                    debugPrint(
+                        '   🔧 Agregando profesor_id=0 al material (no estaba en respuesta)');
                   }
-                  
+
                   // Si no tiene estudiante_id, puede ser NULL (material general)
                   // El modelo ya maneja estudianteId como nullable, así que está bien dejarlo sin el campo
                   // Pero para consistencia, agregarlo explícitamente si sabemos que debería ser NULL
                   if (!materialData.containsKey('estudiante_id')) {
                     // No agregamos nada, el modelo manejará null correctamente
-                    debugPrint('   ℹ️ Material sin estudiante_id explícito (será NULL = material general)');
+                    debugPrint(
+                        '   ℹ️ Material sin estudiante_id explícito (será NULL = material general)');
                   }
-                  
+
                   final parsed = MaterialReforzamiento.fromJson(materialData);
-                  debugPrint('   ✅ Material parseado: ID=${parsed.id}, Título=${parsed.titulo}, MateriaID=${parsed.materiaId}, EstudianteID=${parsed.estudianteId ?? "NULL"}');
+                  debugPrint(
+                      '   ✅ Material parseado: ID=${parsed.id}, Título=${parsed.titulo}, MateriaID=${parsed.materiaId}, EstudianteID=${parsed.estudianteId ?? "NULL"}');
                   return parsed;
                 } catch (parseError) {
                   debugPrint('❌ ERROR: Error parseando material: $parseError');
@@ -395,22 +441,27 @@ class ReforzamientoApiService {
               .whereType<MaterialReforzamiento>()
               .toList();
 
-          debugPrint('📚 DEBUG ReforzamientoApiService: ${materiales.length} materiales parseados exitosamente');
-          
+          debugPrint(
+              '📚 DEBUG ReforzamientoApiService: ${materiales.length} materiales parseados exitosamente');
+
           if (materiales.isEmpty && materialesList.isNotEmpty) {
-            debugPrint('❌ ERROR: Hubo ${materialesList.length} materiales pero ninguno pasó el filtrado o parseo');
+            debugPrint(
+                '❌ ERROR: Hubo ${materialesList.length} materiales pero ninguno pasó el filtrado o parseo');
           }
-          
+
           return materiales;
         } else {
-          final errorMessage = jsonResponse['message'] ?? jsonResponse['error'] ?? 'Error al obtener material';
+          final errorMessage = jsonResponse['message'] ??
+              jsonResponse['error'] ??
+              'Error al obtener material';
           debugPrint('❌ ERROR: El servidor reportó fallo: $errorMessage');
           throw Exception(errorMessage);
         }
       } else {
         debugPrint('❌ ERROR HTTP: ${response.statusCode}');
         debugPrint('   Respuesta: ${response.body}');
-        throw Exception('Error HTTP ${response.statusCode}: No se pudo obtener el material');
+        throw Exception(
+            'Error HTTP ${response.statusCode}: No se pudo obtener el material');
       }
     } catch (e, stackTrace) {
       debugPrint(
@@ -430,8 +481,8 @@ class ReforzamientoApiService {
       debugPrint(
           '🗑️ DEBUG ReforzamientoApiService: Eliminando material - id: $materialId');
 
-      final url = Uri.parse('$_baseUrl/reforzamiento.php')
-          .replace(queryParameters: {
+      final url =
+          Uri.parse('$_baseUrl/reforzamiento.php').replace(queryParameters: {
         'action': 'eliminar',
         'material_id': materialId.toString(),
       });
@@ -450,4 +501,3 @@ class ReforzamientoApiService {
     }
   }
 }
-

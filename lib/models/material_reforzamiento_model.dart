@@ -58,9 +58,16 @@ class MaterialReforzamiento {
       return MaterialReforzamiento(
         id: json['id'] != null ? parseInt(json['id'], 0) : null,
         materiaId: parseInt(json['materia_id'] ?? json['materiaId'], 0),
-        estudianteId: json['estudiante_id'] != null 
-            ? parseInt(json['estudiante_id'], 0)
-            : (json['estudianteId'] != null ? parseInt(json['estudianteId'], 0) : null),
+        // Manejar estudiante_id: puede ser null (material general), un número (material específico), 
+        // o el string "null" que viene del backend cuando es NULL en la BD
+        estudianteId: () {
+          final estudianteIdValue = json['estudiante_id'] ?? json['estudianteId'];
+          if (estudianteIdValue == null || estudianteIdValue == 'null' || estudianteIdValue == 'NULL' || estudianteIdValue == '') {
+            return null; // Material general para todos
+          }
+          final parsed = parseInt(estudianteIdValue, 0);
+          return parsed == 0 ? null : parsed; // Si parsea a 0, podría ser NULL o 0 inválido
+        }(),
         profesorId: parseInt(json['profesor_id'] ?? json['profesorId'], 0),
         anioAcademico: json['año_academico']?.toString() ?? 
                       json['anio_academico']?.toString() ?? 
