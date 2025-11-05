@@ -307,6 +307,15 @@ class _StudentReforzamientoScreenState extends State<StudentReforzamientoScreen>
         title: const Text('Material de Reforzamiento'),
         backgroundColor: Colors.orange,
         foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Actualizar material',
+            onPressed: _isLoading ? null : () {
+              _loadData();
+            },
+          ),
+        ],
         bottom: _isLoading || _subjects.isEmpty || _tabController == null
             ? null
             : TabBar(
@@ -387,7 +396,10 @@ class _StudentReforzamientoScreenState extends State<StudentReforzamientoScreen>
 
   Widget _buildMateriaTab(
       Subject subject, List<MaterialReforzamiento> materiales) {
-    return SingleChildScrollView(
+    return RefreshIndicator(
+      onRefresh: _loadData,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -474,6 +486,7 @@ class _StudentReforzamientoScreenState extends State<StudentReforzamientoScreen>
           else
             ...materiales.map((material) => _buildMaterialCard(material)),
         ],
+        ),
       ),
     );
   }

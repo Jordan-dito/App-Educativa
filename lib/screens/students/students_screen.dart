@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/student.dart';
 import '../../services/student_api_service.dart';
+import '../../services/auth_service.dart';
 import '../../providers/student_provider.dart';
 import 'add_edit_student_screen.dart';
 
@@ -19,6 +20,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
   bool _isLoading = true;
   String _searchQuery = '';
   String _selectedGrade = 'Todos';
+  String _selectedEstado = 'activos'; // 'activos', 'inactivos', 'todos'
 
   final List<String> _grades = [
     'Todos',
@@ -72,7 +74,12 @@ class _StudentsScreenState extends State<StudentsScreen> {
         final matchesGrade =
             _selectedGrade == 'Todos' || student.grade == _selectedGrade;
 
-        return matchesSearch && matchesGrade;
+        // Filtro por estado
+        final matchesEstado = _selectedEstado == 'todos' ||
+            (_selectedEstado == 'activos' && student.estudianteEstado == 'activo') ||
+            (_selectedEstado == 'inactivos' && student.estudianteEstado == 'inactivo');
+
+        return matchesSearch && matchesGrade && matchesEstado;
       }).toList();
     });
   }
@@ -128,6 +135,41 @@ class _StudentsScreenState extends State<StudentsScreen> {
     }
   }
 
+  Future<void> _updateStudentEstado(int studentId, String nuevoEstado) async {
+    try {
+      // Buscar el estudiante en la lista
+      final student = _students.firstWhere((s) => s.id == studentId);
+      
+      // Crear datos de actualización incluyendo el estado
+      final studentData = {
+        'estudiante_id': student.id,
+        'nombre': student.firstName,
+        'apellido': student.lastName,
+        'grado': student.grade,
+        'seccion': student.section,
+        'telefono': student.phone,
+        'direccion': student.address,
+        'fecha_nacimiento': student.dateOfBirth.toIso8601String().split('T')[0],
+        'estado': nuevoEstado, // Agregar el estado
+      };
+
+      final response = await AuthService.editStudent(studentData);
+
+      if (response.success) {
+        _showSuccessSnackBar(
+          nuevoEstado == 'activo' 
+            ? 'Estudiante reactivado exitosamente' 
+            : 'Estudiante desactivado exitosamente'
+        );
+        _loadStudents();
+      } else {
+        _showErrorSnackBar(response.message);
+      }
+    } catch (e) {
+      _showErrorSnackBar('Error al actualizar estado: $e');
+    }
+  }
+
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -179,7 +221,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
           ),
           const SizedBox(height: 24),
           Text(
-            _searchQuery.isNotEmpty || _selectedGrade != 'Todos'
+            _searchQuery.isNotEmpty || _selectedGrade != 'Todos' || _selectedEstado != 'activos'
                 ? 'No se encontraron estudiantes'
                 : 'No hay estudiantes registrados',
             style: TextStyle(
@@ -190,7 +232,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            _searchQuery.isNotEmpty || _selectedGrade != 'Todos'
+            _searchQuery.isNotEmpty || _selectedGrade != 'Todos' || _selectedEstado != 'activos'
                 ? 'Intenta ajustar los filtros de búsqueda'
                 : 'Agrega el primer estudiante para comenzar',
             style: TextStyle(
@@ -199,7 +241,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
             ),
             textAlign: TextAlign.center,
           ),
-          if (_searchQuery.isEmpty && _selectedGrade == 'Todos') ...[
+          if (_searchQuery.isEmpty && _selectedGrade == 'Todos' && _selectedEstado == 'activos') ...[
             const SizedBox(height: 24),
             ElevatedButton.icon(
               onPressed: () async {
@@ -229,14 +271,20 @@ class _StudentsScreenState extends State<StudentsScreen> {
   }
 
   Widget _buildStudentCard(Student student) {
+    final isInactive = student.estudianteEstado == 'inactivo';
+    
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       child: Card(
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: Colors.grey[200]!),
+          side: BorderSide(
+            color: isInactive ? Colors.red[200]! : Colors.grey[200]!,
+            width: isInactive ? 2 : 1,
         ),
+        ),
+        color: isInactive ? Colors.grey[50] : Colors.white,
         child: InkWell(
           onTap: () {
             _showStudentDetails(student);
@@ -252,10 +300,9 @@ class _StudentsScreenState extends State<StudentsScreen> {
                   height: 56,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [
-                        Colors.blue[400]!,
-                        Colors.blue[600]!,
-                      ],
+                      colors: isInactive
+                          ? [Colors.grey[400]!, Colors.grey[600]!]
+                          : [Colors.blue[400]!, Colors.blue[600]!],
                     ),
                     borderRadius: BorderRadius.circular(16),
                   ),
@@ -277,12 +324,37 @@ class _StudentsScreenState extends State<StudentsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
                         student.fullName,
-                        style: const TextStyle(
+                              style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w600,
+                                color: isInactive ? Colors.grey[600] : Colors.black87,
+                                decoration: isInactive ? TextDecoration.lineThrough : null,
+                              ),
+                            ),
+                          ),
+                          if (isInactive)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.red[100],
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                'INACTIVO',
+                                style: TextStyle(
+                                  color: Colors.red[700],
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                         ),
+                        ],
                       ),
                       const SizedBox(height: 4),
                       Row(
@@ -363,11 +435,19 @@ class _StudentsScreenState extends State<StudentsScreen> {
                 // Botones de acción
                 Column(
                   children: [
+                    if (isInactive)
+                      IconButton(
+                        onPressed: () => _updateStudentEstado(student.id, 'activo'),
+                        icon: Icon(Icons.restore, color: Colors.green[600]),
+                        tooltip: 'Reactivar estudiante',
+                      )
+                    else
                     IconButton(
                       onPressed: () => _navigateToEditStudent(student),
                       icon: Icon(Icons.edit, color: Colors.blue[600]),
                       tooltip: 'Editar estudiante',
                     ),
+                    if (!isInactive)
                     IconButton(
                       onPressed: () => _deleteStudent(student.id),
                       icon: Icon(Icons.delete_outline, color: Colors.red[600]),
@@ -571,6 +651,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
                       setState(() {
                         _selectedGrade = 'Todos';
                         _searchQuery = '';
+                        _selectedEstado = 'activos';
                       });
                       _filterStudents();
                       Navigator.pop(context);
@@ -620,6 +701,95 @@ class _StudentsScreenState extends State<StudentsScreen> {
                         ),
                       );
                     }).toList(),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // Filtro por estado
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Filtrar por estado',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      FilterChip(
+                        label: const Text('Activos'),
+                        selected: _selectedEstado == 'activos',
+                        onSelected: (selected) {
+                          setState(() {
+                            _selectedEstado = 'activos';
+                          });
+                          _filterStudents();
+                        },
+                        backgroundColor: Colors.grey[100],
+                        selectedColor: Colors.green[100],
+                        checkmarkColor: Colors.green[700],
+                        labelStyle: TextStyle(
+                          color: _selectedEstado == 'activos'
+                              ? Colors.green[700]
+                              : Colors.grey[700],
+                          fontWeight: _selectedEstado == 'activos'
+                              ? FontWeight.w600
+                              : FontWeight.normal,
+                        ),
+                      ),
+                      FilterChip(
+                        label: const Text('Inactivos'),
+                        selected: _selectedEstado == 'inactivos',
+                        onSelected: (selected) {
+                          setState(() {
+                            _selectedEstado = 'inactivos';
+                          });
+                          _filterStudents();
+                        },
+                        backgroundColor: Colors.grey[100],
+                        selectedColor: Colors.red[100],
+                        checkmarkColor: Colors.red[700],
+                        labelStyle: TextStyle(
+                          color: _selectedEstado == 'inactivos'
+                              ? Colors.red[700]
+                              : Colors.grey[700],
+                          fontWeight: _selectedEstado == 'inactivos'
+                              ? FontWeight.w600
+                              : FontWeight.normal,
+                        ),
+                      ),
+                      FilterChip(
+                        label: const Text('Todos'),
+                        selected: _selectedEstado == 'todos',
+                        onSelected: (selected) {
+                          setState(() {
+                            _selectedEstado = 'todos';
+                          });
+                          _filterStudents();
+                        },
+                        backgroundColor: Colors.grey[100],
+                        selectedColor: Colors.blue[100],
+                        checkmarkColor: Colors.blue[700],
+                        labelStyle: TextStyle(
+                          color: _selectedEstado == 'todos'
+                              ? Colors.blue[700]
+                              : Colors.grey[700],
+                          fontWeight: _selectedEstado == 'todos'
+                              ? FontWeight.w600
+                              : FontWeight.normal,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -696,7 +866,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
           ),
 
           // Indicadores de filtros activos
-          if (_searchQuery.isNotEmpty || _selectedGrade != 'Todos')
+          if (_searchQuery.isNotEmpty || _selectedGrade != 'Todos' || _selectedEstado != 'activos')
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Wrap(
@@ -719,6 +889,16 @@ class _StudentsScreenState extends State<StudentsScreen> {
                       onDeleted: () {
                         setState(() {
                           _selectedGrade = 'Todos';
+                        });
+                        _filterStudents();
+                      },
+                    ),
+                  if (_selectedEstado != 'activos')
+                    _buildFilterChip(
+                      label: _selectedEstado == 'inactivos' ? 'Estado: Inactivos' : 'Estado: Todos',
+                      onDeleted: () {
+                        setState(() {
+                          _selectedEstado = 'activos';
                         });
                         _filterStudents();
                       },
@@ -746,6 +926,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
                       setState(() {
                         _searchQuery = '';
                         _selectedGrade = 'Todos';
+                        _selectedEstado = 'activos';
                       });
                       _filterStudents();
                     },

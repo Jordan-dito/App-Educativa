@@ -38,7 +38,8 @@ class _TeacherSubirMaterialScreenState
   // Solo soportamos texto y link
   final List<String> _tiposContenido = [
     'texto',
-    'link'
+    'link',
+    'pdf' // PDF deshabilitado, sin funcionalidad
   ];
 
   @override
@@ -296,17 +297,22 @@ class _TeacherSubirMaterialScreenState
                 spacing: 8,
                 children: _tiposContenido.map((tipo) {
                   final isSelected = _tipoContenido == tipo;
+                  final isPdf = tipo == 'pdf';
                   return FilterChip(
                     label: Text('${_getTipoIcono(tipo)} ${tipo.toUpperCase()}'),
-                    selected: isSelected,
-                    onSelected: (selected) {
+                    selected: isSelected && !isPdf,
+                    onSelected: isPdf ? null : (selected) {
+                      if (selected) {
                       setState(() {
                         _tipoContenido = tipo;
                         _urlController.clear();
                         _contenidoController.clear();
                       });
+                      }
                     },
                     selectedColor: Colors.orange[200],
+                    disabledColor: Colors.grey[300],
+                    checkmarkColor: Colors.orange[800],
                   );
                 }).toList(),
               ),

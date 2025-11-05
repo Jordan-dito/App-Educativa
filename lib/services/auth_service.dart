@@ -406,15 +406,24 @@ class AuthService {
   }
 
   // Obtener estudiantes
-  static Future<ApiResponse<List<Map<String, dynamic>>>> getStudents() async {
+  static Future<ApiResponse<List<Map<String, dynamic>>>> getStudents({bool includeInactive = true}) async {
     try {
       print(
           '🎓 DEBUG AuthService.getStudents: Iniciando obtención de estudiantes...');
       print(
-          '🎓 DEBUG AuthService.getStudents: URL: ${ApiConfig.baseUrl}${ApiConfig.studentsEndpoint}');
+          '🎓 DEBUG AuthService.getStudents: includeInactive=$includeInactive');
+      
+      // Construir URL con todos los parámetros (mantener action=students y agregar include_inactive)
+      final uriWithParams = Uri.parse('${ApiConfig.baseUrl}/api/auth.php').replace(queryParameters: {
+        'action': 'students',
+        'include_inactive': includeInactive.toString(),
+      });
+      
+      print(
+          '🎓 DEBUG AuthService.getStudents: URL: $uriWithParams');
 
       final response = await http.get(
-        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.studentsEndpoint}'),
+        uriWithParams,
         headers: ApiConfig.defaultHeaders,
       );
 
@@ -499,9 +508,26 @@ class AuthService {
       if ((response.statusCode != 200 && response.statusCode != 201)) {
         print(
             '❌ DEBUG AuthService.editStudent: Error HTTP - Status: ${response.statusCode}');
+        print(
+            '❌ DEBUG AuthService.editStudent: Response body: ${response.body}');
+        
+        // Intentar parsear el mensaje de error del servidor
+        String errorMessage = 'Error del servidor: ${response.statusCode}';
+        try {
+          final errorData = json.decode(response.body);
+          if (errorData.containsKey('message')) {
+            errorMessage = errorData['message'];
+          } else if (errorData.containsKey('error')) {
+            errorMessage = errorData['error'];
+          }
+        } catch (e) {
+          // Si no se puede parsear, usar el body completo
+          errorMessage = 'Error del servidor: ${response.statusCode}\n${response.body}';
+        }
+        
         return ApiResponse(
           success: false,
-          message: 'Error del servidor: ${response.statusCode}',
+          message: errorMessage,
         );
       }
 
