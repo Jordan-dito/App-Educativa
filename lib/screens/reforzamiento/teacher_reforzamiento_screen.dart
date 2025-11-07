@@ -59,8 +59,14 @@ class _TeacherReforzamientoScreenState
       }
 
       // Cargar materias del profesor
-      final subjects = await _subjectService
+      final allSubjects = await _subjectService
           .getSubjectsByTeacher(_currentProfesorId.toString());
+
+      // Filtrar solo materias del año académico actual y activas
+      final currentYear = DateTime.now().year.toString();
+      final subjects = allSubjects.where((subject) {
+        return subject.academicYear == currentYear && subject.isActive;
+      }).toList();
 
       // Completar el nombre del profesor en las materias que no lo tengan
       final subjectsWithTeacher = subjects.map((subject) {

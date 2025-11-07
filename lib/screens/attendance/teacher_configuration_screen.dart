@@ -44,7 +44,8 @@ class _TeacherConfigurationScreenState extends State<TeacherConfigurationScreen>
   @override
   void initState() {
     super.initState();
-    _academicYearController = TextEditingController(text: DateTime.now().year.toString());
+    // El año académico viene automáticamente de la materia
+    _academicYearController = TextEditingController(text: widget.subject.academicYear);
     _classTimeController = TextEditingController();
     _attendanceGoalController = TextEditingController(text: '80');
     _loadExistingConfiguration();
@@ -62,10 +63,34 @@ class _TeacherConfigurationScreenState extends State<TeacherConfigurationScreen>
     setState(() => _isLoading = true);
 
     try {
-      // Aquí podrías cargar una configuración existente si la hay
-      // Por ahora empezamos con valores por defecto
+      // Actualizar el año académico desde la materia (por si cambió)
+      _academicYearController.text = widget.subject.academicYear;
+      
+      // Cargar configuración existente si la hay
+      final user = await UserService.getCurrentUser();
+      if (user != null && widget.subject.id != null) {
+        final existingConfig = await _attendanceService.getSubjectConfiguration(
+          int.parse(widget.subject.id!),
+          int.parse(widget.subject.academicYear),
+          fallbackTeacherId: user.id,
+        );
+        
+        if (existingConfig != null) {
+          setState(() {
+            _startDate = existingConfig.startDate;
+            _endDate = existingConfig.endDate;
+            _selectedDays.clear();
+            _selectedDays.addAll(existingConfig.classDays);
+            _classTimeController.text = existingConfig.classTime ?? '';
+            _attendanceGoalController.text = existingConfig.attendanceGoal.toString();
+            // Asegurar que el año académico sea el de la materia
+            _academicYearController.text = widget.subject.academicYear;
+          });
+        }
+      }
     } catch (e) {
-      _showErrorMessage('Error al cargar configuración: $e');
+      debugPrint('⚠️ No se encontró configuración existente o error: $e');
+      // No mostrar error si no hay configuración, es normal
     } finally {
       setState(() => _isLoading = false);
     }
@@ -116,10 +141,11 @@ class _TeacherConfigurationScreenState extends State<TeacherConfigurationScreen>
         return;
       }
 
+      // Usar siempre el año académico de la materia, no del campo (por seguridad)
       final config = SubjectConfiguration(
         subjectId: int.parse(widget.subject.id!),
         teacherId: user.id!,
-        academicYear: _academicYearController.text.trim(),
+        academicYear: widget.subject.academicYear,
         startDate: _startDate,
         endDate: _endDate,
         classDays: _selectedDays,
@@ -227,28 +253,22 @@ class _TeacherConfigurationScreenState extends State<TeacherConfigurationScreen>
 
                     const SizedBox(height: 24),
 
-                    // Año académico
+                    // Año académico (no editable, viene de la materia)
                     TextFormField(
                       controller: _academicYearController,
+                      readOnly: true,
+                      enabled: false,
                       decoration: InputDecoration(
                         labelText: 'Año Académico',
+                        helperText: 'Este valor viene de la materia y no puede modificarse aquí',
                         prefixIcon: const Icon(Icons.calendar_today),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                         filled: true,
-                        fillColor: Colors.grey[50],
+                        fillColor: Colors.grey[200],
                       ),
                       keyboardType: TextInputType.number,
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Ingresa el año académico';
-                        }
-                        if (int.tryParse(value.trim()) == null) {
-                          return 'Ingresa un año válido';
-                        }
-                        return null;
-                      },
                     ),
 
                     const SizedBox(height: 16),
