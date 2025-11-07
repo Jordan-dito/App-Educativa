@@ -189,6 +189,60 @@ class ReforzamientoApiService {
     }
   }
 
+  // Obtener todos los materiales de un profesor para una materia
+  Future<List<MaterialReforzamiento>> obtenerMaterialesPorProfesor({
+    required int profesorId,
+    required int materiaId,
+    int? anioAcademico,
+  }) async {
+    try {
+      debugPrint(
+          '📚 DEBUG ReforzamientoApiService: Obteniendo materiales del profesor - profesor_id: $profesorId, materia_id: $materiaId');
+
+      final queryParams = {
+        'action': 'material_por_profesor',
+        'profesor_id': profesorId.toString(),
+        'materia_id': materiaId.toString(),
+      };
+
+      if (anioAcademico != null) {
+        queryParams['año_academico'] = anioAcademico.toString();
+      } else {
+        queryParams['año_academico'] = DateTime.now().year.toString();
+      }
+
+      final url = Uri.parse('$_baseUrl/reforzamiento.php')
+          .replace(queryParameters: queryParams);
+
+      final response = await http.get(url, headers: _headers);
+
+      debugPrint(
+          '📚 DEBUG ReforzamientoApiService.obtenerMaterialesPorProfesor: Status Code: ${response.statusCode}');
+      debugPrint(
+          '📚 DEBUG ReforzamientoApiService.obtenerMaterialesPorProfesor: Response Body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final Map<String, dynamic> jsonResponse = json.decode(response.body);
+
+        if (jsonResponse['success'] == true) {
+          final List<dynamic> data = jsonResponse['data'] ?? [];
+          return data.map((e) => MaterialReforzamiento.fromJson(e)).toList();
+        } else {
+          throw Exception(jsonResponse['message'] ??
+              'Error al obtener materiales del profesor');
+        }
+      } else {
+        throw Exception('Error HTTP: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint(
+          '❌ ERROR ReforzamientoApiService.obtenerMaterialesPorProfesor: $e');
+      // Si el endpoint no existe, devolver lista vacía en lugar de lanzar error
+      // Esto permite que la funcionalidad funcione incluso si el backend no tiene este endpoint
+      return [];
+    }
+  }
+
   // Obtener material por estudiante (para profesor)
   Future<List<MaterialReforzamiento>> obtenerMaterialPorEstudiante({
     required int estudianteId,
@@ -412,11 +466,15 @@ class ReforzamientoApiService {
                         '   🔧 Agregando materia_id=$materiaId al material (no estaba en respuesta)');
                   }
 
-                  // Si no tiene profesor_id, usar 0 como fallback (el modelo lo requiere)
-                  if (!materialData.containsKey('profesor_id')) {
-                    materialData['profesor_id'] = 0;
+                  // Si no tiene profesor_id, intentar obtenerlo de la materia o usar 0 como último recurso
+                  // Nota: El backend debería retornar profesor_id siempre, pero si no lo hace,
+                  // necesitamos manejarlo. Por ahora, dejamos que el modelo use 0 si no está presente,
+                  // pero esto puede causar problemas al filtrar. El filtrado debe hacerse antes de parsear.
+                  if (!materialData.containsKey('profesor_id') || materialData['profesor_id'] == null) {
                     debugPrint(
-                        '   🔧 Agregando profesor_id=0 al material (no estaba en respuesta)');
+                        '   ⚠️ Material sin profesor_id en respuesta - ID: ${materialData['id']}, Título: ${materialData['titulo']}');
+                    // No asignar 0 aquí, dejar que el modelo lo maneje
+                    // El problema es que necesitamos profesor_id para filtrar
                   }
 
                   // Si no tiene estudiante_id, puede ser NULL (material general)
@@ -472,6 +530,134 @@ class ReforzamientoApiService {
         rethrow;
       }
       throw Exception('Error al obtener material del estudiante: $e');
+    }
+  }
+
+  // Obtener material por ID (para editar)
+  Future<MaterialReforzamiento?> obtenerMaterialPorId({
+    required int materialId,
+    required int profesorId,
+  }) async {
+    try {
+      debugPrint(
+          '📚 DEBUG ReforzamientoApiService: Obteniendo material por ID - material_id: $materialId, profesor_id: $profesorId');
+
+      final url = Uri.parse('$_baseUrl/reforzamiento.php')
+          .replace(queryParameters: {
+        'action': 'obtener-por-id',
+        'material_id': materialId.toString(),
+        'profesor_id': profesorId.toString(),
+      });
+
+      final response = await http.get(url, headers: _headers);
+
+      debugPrint(
+          '📚 DEBUG ReforzamientoApiService.obtenerMaterialPorId: Status Code: ${response.statusCode}');
+      debugPrint(
+          '📚 DEBUG ReforzamientoApiService.obtenerMaterialPorId: Response Body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final Map<String, dynamic> jsonResponse = json.decode(response.body);
+
+        if (jsonResponse['success'] == true && jsonResponse['data'] != null) {
+          return MaterialReforzamiento.fromJson(jsonResponse['data']);
+        } else {
+          throw Exception(jsonResponse['message'] ??
+              'Material no encontrado o no tienes permisos');
+        }
+      } else if (response.statusCode == 404) {
+        throw Exception('Material no encontrado');
+      } else {
+        throw Exception('Error HTTP: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('❌ ERROR ReforzamientoApiService.obtenerMaterialPorId: $e');
+      rethrow;
+    }
+  }
+
+  // Editar material de reforzamiento
+  Future<bool> editarMaterial({
+    required int materialId,
+    required int profesorId,
+    String? titulo,
+    String? descripcion,
+    String? tipoContenido,
+    String? contenido,
+    String? urlExterna,
+    int? estudianteId,
+    String? fechaVencimiento,
+  }) async {
+    try {
+      debugPrint('✏️ DEBUG ReforzamientoApiService: Editando material...');
+      debugPrint('   material_id: $materialId');
+      debugPrint('   profesor_id: $profesorId');
+
+      final url = Uri.parse('$_baseUrl/reforzamiento.php?action=editar');
+
+      // Construir el body solo con los campos proporcionados
+      final Map<String, dynamic> body = {
+        'material_id': materialId,
+        'profesor_id': profesorId,
+      };
+
+      // Agregar campos opcionales solo si se proporcionan
+      if (titulo != null) body['titulo'] = titulo;
+      if (descripcion != null) body['descripcion'] = descripcion;
+      if (tipoContenido != null) body['tipo_contenido'] = tipoContenido;
+      if (contenido != null) body['contenido'] = contenido;
+      if (urlExterna != null) body['url_externa'] = urlExterna;
+      // estudianteId: si se proporciona explícitamente (incluso null), lo enviamos
+      // null significa cambiar a material general
+      // No enviarlo significa no cambiar el estudiante_id actual
+      // Como Dart no distingue entre "no proporcionado" y "null", 
+      // siempre lo enviaremos si está en la firma del método
+      // Nota: Para mantener el estudiante_id actual sin cambios, no llamar con este parámetro
+      body['estudiante_id'] = estudianteId;
+      if (fechaVencimiento != null) {
+        body['fecha_vencimiento'] = fechaVencimiento;
+      }
+
+      // Debug: mostrar todos los campos que se están enviando
+      debugPrint('✏️ DEBUG ReforzamientoApiService: Campos del request:');
+      body.forEach((key, value) {
+        debugPrint('   $key: $value');
+      });
+
+      final response = await http.put(
+        url,
+        headers: _headers,
+        body: json.encode(body),
+      );
+
+      debugPrint(
+          '✏️ DEBUG ReforzamientoApiService.editarMaterial: Status Code: ${response.statusCode}');
+      debugPrint(
+          '✏️ DEBUG ReforzamientoApiService.editarMaterial: Response Body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final Map<String, dynamic> jsonResponse = json.decode(response.body);
+
+        if (jsonResponse['success'] == true) {
+          debugPrint('✅ Material editado exitosamente');
+          return true;
+        } else {
+          final errorMessage = jsonResponse['message'] ??
+              'Error desconocido al editar material';
+          debugPrint('❌ ERROR: El servidor reportó fallo: $errorMessage');
+          throw Exception(errorMessage);
+        }
+      } else if (response.statusCode == 404) {
+        throw Exception('Material no encontrado o no tienes permisos');
+      } else if (response.statusCode == 400) {
+        final Map<String, dynamic> jsonResponse = json.decode(response.body);
+        throw Exception(jsonResponse['message'] ?? 'Error de validación');
+      } else {
+        throw Exception('Error HTTP: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('❌ ERROR ReforzamientoApiService.editarMaterial: $e');
+      rethrow;
     }
   }
 

@@ -1,19 +1,25 @@
 import 'package:flutter/material.dart';
 import '../../models/subject_model.dart';
 import '../../models/material_reforzamiento_model.dart';
+import '../../models/estudiante_reprobado_model.dart';
 import '../../services/reforzamiento_api_service.dart';
 import 'material_preview_screen.dart';
+import 'teacher_subir_material_screen.dart';
 
 class TeacherMaterialEstudianteScreen extends StatefulWidget {
   final int estudianteId;
   final String estudianteNombre;
   final Subject subject;
+  final int profesorId;
+  final List<EstudianteReprobado> estudiantesReprobados;
 
   const TeacherMaterialEstudianteScreen({
     super.key,
     required this.estudianteId,
     required this.estudianteNombre,
     required this.subject,
+    required this.profesorId,
+    required this.estudiantesReprobados,
   });
 
   @override
@@ -118,6 +124,48 @@ class _TeacherMaterialEstudianteScreenState
         builder: (context) => MaterialPreviewScreen(material: material),
       ),
     );
+  }
+
+  Future<void> _editarMaterial(MaterialReforzamiento material) async {
+    if (material.id == null) {
+      _showError('No se puede editar este material (ID no disponible)');
+      return;
+    }
+
+    try {
+      // Obtener el material completo con todos los datos
+      final materialCompleto = await _reforzamientoService.obtenerMaterialPorId(
+        materialId: material.id!,
+        profesorId: widget.profesorId,
+      );
+
+      if (materialCompleto == null || !mounted) {
+        _showError('No se pudo cargar el material para editar');
+        return;
+      }
+
+      // Navegar a la pantalla de edición
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => TeacherSubirMaterialScreen(
+            subject: widget.subject,
+            profesorId: widget.profesorId,
+            estudiantesReprobados: widget.estudiantesReprobados,
+            materialToEdit: materialCompleto,
+          ),
+        ),
+      );
+
+      // Si se editó exitosamente, recargar materiales
+      if (result == true && mounted) {
+        _loadMateriales();
+      }
+    } catch (e) {
+      if (mounted) {
+        _showError('Error al cargar material para editar: $e');
+      }
+    }
   }
 
   @override
@@ -251,6 +299,17 @@ class _TeacherMaterialEstudianteScreenState
                                     ),
                                   ),
                                   const PopupMenuItem(
+                                    value: 'editar',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.edit, color: Colors.blue),
+                                        SizedBox(width: 8),
+                                        Text('Editar',
+                                            style: TextStyle(color: Colors.blue)),
+                                      ],
+                                    ),
+                                  ),
+                                  const PopupMenuItem(
                                     value: 'eliminar',
                                     child: Row(
                                       children: [
@@ -265,6 +324,8 @@ class _TeacherMaterialEstudianteScreenState
                                 onSelected: (value) {
                                   if (value == 'ver') {
                                     _verMaterial(material);
+                                  } else if (value == 'editar') {
+                                    _editarMaterial(material);
                                   } else if (value == 'eliminar' &&
                                       material.id != null) {
                                     _eliminarMaterial(material.id!);

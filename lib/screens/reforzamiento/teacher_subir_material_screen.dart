@@ -1,18 +1,21 @@
 import 'package:flutter/material.dart';
 import '../../models/subject_model.dart';
 import '../../models/estudiante_reprobado_model.dart';
+import '../../models/material_reforzamiento_model.dart';
 import '../../services/reforzamiento_api_service.dart';
 
 class TeacherSubirMaterialScreen extends StatefulWidget {
   final Subject subject;
   final int profesorId;
   final List<EstudianteReprobado> estudiantesReprobados;
+  final MaterialReforzamiento? materialToEdit; // Material a editar (null = crear nuevo)
 
   const TeacherSubirMaterialScreen({
     super.key,
     required this.subject,
     required this.profesorId,
     required this.estudiantesReprobados,
+    this.materialToEdit,
   });
 
   @override
@@ -34,6 +37,7 @@ class _TeacherSubirMaterialScreenState
   String _tipoContenido = 'texto';
   DateTime? _fechaVencimiento;
   bool _isLoading = false;
+  bool _isEditing = false;
 
   // Solo soportamos texto y link
   final List<String> _tiposContenido = [
@@ -41,6 +45,28 @@ class _TeacherSubirMaterialScreenState
     'link',
     'pdf' // PDF deshabilitado, sin funcionalidad
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _isEditing = widget.materialToEdit != null;
+    
+    // Si estamos editando, cargar los datos del material
+    if (_isEditing && widget.materialToEdit != null) {
+      final material = widget.materialToEdit!;
+      _tituloController.text = material.titulo;
+      _descripcionController.text = material.descripcion ?? '';
+      _tipoContenido = material.tipoContenido;
+      _estudianteSeleccionadoId = material.estudianteId;
+      _fechaVencimiento = material.fechaVencimiento;
+      
+      if (material.tipoContenido == 'texto') {
+        _contenidoController.text = material.contenido ?? '';
+      } else if (material.tipoContenido == 'link') {
+        _urlController.text = material.urlExterna ?? '';
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -78,21 +104,6 @@ class _TeacherSubirMaterialScreenState
       return;
     }
 
-    // Confirmación clara del target
-    final targetLabel = _getTargetLabel();
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Confirmar subida'),
-        content: Text('Vas a subir material para: $targetLabel\n\n¿Deseas continuar?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancelar')),
-          ElevatedButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Continuar')),
-        ],
-      ),
-    );
-    if (confirm != true) return;
-
     // Validaciones según tipo de contenido
     if (_tipoContenido == 'texto' && _contenidoController.text.isEmpty) {
       _showError('El contenido de texto es requerido');
@@ -104,52 +115,107 @@ class _TeacherSubirMaterialScreenState
       return;
     }
 
+    // Confirmación clara del target
+    final targetLabel = _getTargetLabel();
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(_isEditing ? 'Confirmar edición' : 'Confirmar subida'),
+        content: Text(_isEditing
+            ? 'Vas a editar material para: $targetLabel\n\n¿Deseas continuar?'
+            : 'Vas a subir material para: $targetLabel\n\n¿Deseas continuar?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancelar')),
+          ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Continuar')),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+
     if (!mounted) return;
     setState(() => _isLoading = true);
 
     try {
-      final success = await _reforzamientoService.subirMaterial(
-        materiaId: int.parse(widget.subject.id!),
-        estudianteId: _estudianteSeleccionadoId,
-        profesorId: widget.profesorId,
-        titulo: _tituloController.text.trim(),
-        descripcion: _descripcionController.text.trim().isEmpty
-            ? null
-            : _descripcionController.text.trim(),
-        tipoContenido: _tipoContenido,
-        contenido: _tipoContenido == 'texto'
-            ? _contenidoController.text.trim()
-            : null,
-        archivo: null, // Ya no se usan archivos
-        urlExterna: _tipoContenido == 'link'
-            ? _urlController.text.trim()
-            : null,
-        fechaVencimiento: _fechaVencimiento,
-      );
+      bool success;
+
+      if (_isEditing && widget.materialToEdit?.id != null) {
+        // Modo edición
+        final fechaVencimientoStr = _fechaVencimiento != null
+            ? _fechaVencimiento!.toIso8601String().split('T')[0]
+            : null;
+
+        success = await _reforzamientoService.editarMaterial(
+          materialId: widget.materialToEdit!.id!,
+          profesorId: widget.profesorId,
+          titulo: _tituloController.text.trim(),
+          descripcion: _descripcionController.text.trim().isEmpty
+              ? null
+              : _descripcionController.text.trim(),
+          tipoContenido: _tipoContenido,
+          contenido: _tipoContenido == 'texto'
+              ? _contenidoController.text.trim()
+              : null,
+          urlExterna: _tipoContenido == 'link'
+              ? _urlController.text.trim()
+              : null,
+          estudianteId: _estudianteSeleccionadoId,
+          fechaVencimiento: fechaVencimientoStr,
+        );
+      } else {
+        // Modo creación
+        success = await _reforzamientoService.subirMaterial(
+          materiaId: int.parse(widget.subject.id!),
+          estudianteId: _estudianteSeleccionadoId,
+          profesorId: widget.profesorId,
+          titulo: _tituloController.text.trim(),
+          descripcion: _descripcionController.text.trim().isEmpty
+              ? null
+              : _descripcionController.text.trim(),
+          tipoContenido: _tipoContenido,
+          contenido: _tipoContenido == 'texto'
+              ? _contenidoController.text.trim()
+              : null,
+          archivo: null, // Ya no se usan archivos
+          urlExterna: _tipoContenido == 'link'
+              ? _urlController.text.trim()
+              : null,
+          fechaVencimiento: _fechaVencimiento,
+        );
+      }
 
       if (success) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Material subido exitosamente'),
+            SnackBar(
+              content: Text(_isEditing
+                  ? 'Material editado exitosamente'
+                  : 'Material subido exitosamente'),
               backgroundColor: Colors.green,
-              duration: Duration(seconds: 3),
+              duration: const Duration(seconds: 3),
             ),
           );
           Navigator.pop(context, true);
         }
       } else {
-        _showError('Error al subir el material. Por favor, intenta nuevamente.');
+        _showError(_isEditing
+            ? 'Error al editar el material. Por favor, intenta nuevamente.'
+            : 'Error al subir el material. Por favor, intenta nuevamente.');
       }
     } catch (e) {
       // Mostrar el mensaje de error específico del servidor o uno genérico
-      String errorMessage = 'Error al subir material';
+      String errorMessage = _isEditing
+          ? 'Error al editar material'
+          : 'Error al subir material';
       if (e.toString().contains('Exception:')) {
         errorMessage = e.toString().replaceFirst('Exception: ', '');
       } else if (e.toString().isNotEmpty) {
         errorMessage = e.toString();
       }
-      
+
       debugPrint('Error completo: $e');
       _showError(errorMessage);
     } finally {
@@ -190,7 +256,9 @@ class _TeacherSubirMaterialScreenState
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Subir Material de Reforzamiento'),
+        title: Text(_isEditing
+            ? 'Editar Material de Reforzamiento'
+            : 'Subir Material de Reforzamiento'),
         backgroundColor: Colors.orange,
         foregroundColor: Colors.white,
       ),
@@ -405,9 +473,9 @@ class _TeacherSubirMaterialScreenState
                       ? const CircularProgressIndicator(
                           valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                         )
-                      : const Text(
-                          'Subir Material',
-                          style: TextStyle(
+                      : Text(
+                          _isEditing ? 'Guardar Cambios' : 'Subir Material',
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
