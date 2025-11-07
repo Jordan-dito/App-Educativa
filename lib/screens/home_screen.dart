@@ -51,6 +51,15 @@ class _HomeScreenState extends State<HomeScreen> {
     Navigator.pushReplacementNamed(context, '/login');
   }
 
+  String _getInitial(String name) {
+    if (name.isEmpty || name.trim().isEmpty) return 'U';
+    final trimmedName = name.trim();
+    if (trimmedName.length == 1) {
+      return trimmedName.toUpperCase();
+    }
+    return trimmedName.substring(0, 1).toUpperCase();
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -103,9 +112,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   CircleAvatar(
                     backgroundColor: Colors.white,
                     child: Text(
-                      (_currentUser?.nombre ?? 'U')
-                          .substring(0, 1)
-                          .toUpperCase(),
+                      _getInitial(_currentUser?.nombre ?? 'U'),
                       style: const TextStyle(color: Colors.blue),
                     ),
                   ),
@@ -130,9 +137,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       radius: 30,
                       backgroundColor: Colors.blue,
                       child: Text(
-                        (_currentUser?.nombre ?? 'U')
-                            .substring(0, 1)
-                            .toUpperCase(),
+                        _getInitial(_currentUser?.nombre ?? 'U'),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 24,

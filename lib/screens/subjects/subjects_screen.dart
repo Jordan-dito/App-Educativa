@@ -21,12 +21,7 @@ class _SubjectsScreenState extends State<SubjectsScreen> {
   String _selectedGrade = 'Todos';
 
   final List<String> _sections = ['Todos', 'A', 'B', 'C', 'D'];
-  final List<String> _grades = [
-    'Todos',
-    '1°',
-    '2°',
-    '3°'
-  ];
+  final List<String> _grades = ['Todos', '1°', '2°', '3°'];
 
   @override
   void initState() {
@@ -189,7 +184,7 @@ class _SubjectsScreenState extends State<SubjectsScreen> {
                     ),
                     child: Center(
                       child: Text(
-                        subject.name.substring(0, 2).toUpperCase(),
+                        _getInitials(subject.name),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 20,
@@ -291,6 +286,35 @@ class _SubjectsScreenState extends State<SubjectsScreen> {
 
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year}';
+  }
+
+  String _getInitials(String name) {
+    try {
+      // Manejar casos vacíos
+      if (name.isEmpty) return '??';
+
+      // Trimear el nombre para eliminar espacios
+      final trimmedName = name.trim();
+
+      // Verificar si después del trim quedó vacío
+      if (trimmedName.isEmpty) return '??';
+
+      // Obtener la longitud y asegurar que nunca exceda el rango
+      final length = trimmedName.length;
+
+      // Si tiene solo 1 carácter, devolver ese carácter
+      if (length == 1) {
+        return trimmedName.toUpperCase();
+      }
+
+      // Si tiene 2 o más caracteres, usar el mínimo entre la longitud y 2
+      // Esto asegura que nunca intentemos acceder más allá del rango válido
+      final endIndex = length < 2 ? length : 2;
+      return trimmedName.substring(0, endIndex).toUpperCase();
+    } catch (e) {
+      debugPrint('❌ ERROR _getInitials: $e - nombre: "$name"');
+      return '??';
+    }
   }
 
   void _showSuccessMessage(String message) {
@@ -556,7 +580,7 @@ class _SubjectsScreenState extends State<SubjectsScreen> {
                   ),
                   child: Center(
                     child: Text(
-                      subject.name.substring(0, 2).toUpperCase(),
+                      _getInitials(subject.name),
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 20,

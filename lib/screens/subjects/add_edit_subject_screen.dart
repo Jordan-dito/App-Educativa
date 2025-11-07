@@ -29,11 +29,7 @@ class _AddEditSubjectScreenState extends State<AddEditSubjectScreen> {
   bool _isLoading = false;
 
   List<Teacher> _availableTeachers = [];
-  final List<String> _grades = [
-    '1°',
-    '2°',
-    '3°'
-  ];
+  final List<String> _grades = ['1°', '2°', '3°'];
   final List<String> _sections = ['A', 'B', 'C', 'D'];
 
   @override
@@ -49,8 +45,20 @@ class _AddEditSubjectScreenState extends State<AddEditSubjectScreen> {
     _nameController = TextEditingController(text: subject?.name ?? '');
 
     if (subject != null) {
-      _selectedGrade = subject.grade;
-      _selectedSection = subject.section;
+      // Validar que el grado esté en la lista disponible, si no, usar el primero
+      if (_grades.contains(subject.grade)) {
+        _selectedGrade = subject.grade;
+      } else {
+        _selectedGrade = _grades.isNotEmpty ? _grades.first : '1°';
+      }
+
+      // Validar que la sección esté en la lista disponible, si no, usar la primera
+      if (_sections.contains(subject.section)) {
+        _selectedSection = subject.section;
+      } else {
+        _selectedSection = _sections.isNotEmpty ? _sections.first : 'A';
+      }
+
       // No establecer _selectedTeacherId hasta que los profesores estén cargados
       _selectedTeacherName = subject.teacherName;
       _academicYear = subject.academicYear;
@@ -82,14 +90,42 @@ class _AddEditSubjectScreenState extends State<AddEditSubjectScreen> {
         _availableTeachers = teachers;
 
         // Si estamos editando una materia, establecer el profesor seleccionado
+        // Validar que el profesor esté en la lista disponible
         if (widget.subject != null && widget.subject!.teacherId != null) {
-          _selectedTeacherId = widget.subject!.teacherId;
+          final teacherIdStr = widget.subject!.teacherId;
+          // Verificar si el profesor existe en la lista cargada
+          final teacherExists = teachers.any(
+            (teacher) => teacher.id?.toString() == teacherIdStr,
+          );
+          if (teacherExists) {
+            _selectedTeacherId = teacherIdStr;
+          } else {
+            // Si el profesor no está disponible, dejarlo en null
+            // El usuario deberá seleccionarlo manualmente
+            debugPrint(
+              '⚠️ WARNING: Profesor ID $teacherIdStr no encontrado en la lista de profesores disponibles',
+            );
+            _selectedTeacherId = null;
+          }
         }
       });
     } catch (e) {
       debugPrint('❌ ERROR AddEditSubjectScreen._loadTeachers: $e');
       _showErrorMessage('Error al cargar profesores: $e');
     }
+  }
+
+  /// Obtiene un ID de profesor válido que esté en la lista disponible
+  /// Si el ID seleccionado no está en la lista, retorna null
+  String? _getValidTeacherId() {
+    if (_selectedTeacherId == null) return null;
+
+    // Verificar que el ID esté en la lista de profesores disponibles
+    final exists = _availableTeachers.any(
+      (teacher) => teacher.id?.toString() == _selectedTeacherId,
+    );
+
+    return exists ? _selectedTeacherId : null;
   }
 
   /// Verifica si todos los campos requeridos están completos
@@ -317,20 +353,21 @@ class _AddEditSubjectScreenState extends State<AddEditSubjectScreen> {
                             fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 16),
-                      DropdownButtonFormField<String>(
-                        value: _selectedTeacherId,
+                      DropdownButtonFormField<String?>(
+                        value: _getValidTeacherId(),
                         decoration: const InputDecoration(
                           labelText: 'Profesor Asignado *',
                           border: OutlineInputBorder(),
                         ),
                         items: [
-                          const DropdownMenuItem<String>(
+                          const DropdownMenuItem<String?>(
                             value: null,
                             child: Text('Sin asignar'),
                           ),
                           ..._availableTeachers.map((teacher) {
-                            return DropdownMenuItem<String>(
-                              value: teacher.id?.toString(),
+                            final teacherIdStr = teacher.id?.toString();
+                            return DropdownMenuItem<String?>(
+                              value: teacherIdStr,
                               child: Text(teacher.fullName),
                             );
                           }),
