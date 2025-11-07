@@ -122,9 +122,16 @@ class _TeacherEstudiantesReprobadosScreenState
           estudiantesReprobados: _estudiantesReprobados,
         ),
       ),
-    ).then((_) {
+    ).then((result) {
+      // Recargar materiales después de subir/editar material
+      debugPrint('🔄 Recargando materiales después de subir/editar...');
       _loadEstudiantesReprobados();
-      _loadMateriales();
+      // Esperar un momento antes de recargar materiales para asegurar que el backend haya procesado
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) {
+          _loadMateriales();
+        }
+      });
     });
   }
 
@@ -154,46 +161,58 @@ class _TeacherEstudiantesReprobadosScreenState
           debugPrint('📚 Materiales obtenidos del primer estudiante: ${materialesPrimerEstudiante.length}');
           
           // Filtrar solo materiales del profesor actual
-          // Nota: Si el backend no retorna profesor_id o retorna 0, 
-          // asumimos que los materiales pertenecen al profesor de la materia
+          // MEJORADO: Aceptar materiales si pertenecen a la materia y:
+          // 1. El profesor_id coincide exactamente, O
+          // 2. El profesor_id es 0/null y la materia pertenece al profesor actual, O
+          // 3. La materia pertenece al profesor actual (validación adicional)
+          final materiaDelProfesor = widget.subject.teacherId != null && 
+                                    widget.subject.teacherId == widget.profesorId.toString();
+          
           for (var material in materialesPrimerEstudiante) {
             final materialProfesorId = material.profesorId;
             final materialMateriaId = material.materiaId;
             debugPrint('   🔍 Material ID: ${material.id}');
             debugPrint('      - Título: ${material.titulo}');
-            debugPrint('      - Profesor ID: $materialProfesorId (esperado: ${widget.profesorId})');
-            debugPrint('      - Materia ID: $materialMateriaId (esperado: ${widget.subject.id})');
+            debugPrint('      - Profesor ID del material: $materialProfesorId');
+            debugPrint('      - Profesor ID esperado: ${widget.profesorId}');
+            debugPrint('      - Materia ID del material: $materialMateriaId');
+            debugPrint('      - Materia ID esperada: ${widget.subject.id}');
+            debugPrint('      - Materia pertenece al profesor: $materiaDelProfesor');
             
             // Verificar que el material pertenezca a la materia correcta
-            final materiaCorrecta = materialMateriaId == int.parse(widget.subject.id!);
+            final materiaCorrecta = materialMateriaId.toString() == widget.subject.id ||
+                                   materialMateriaId == int.parse(widget.subject.id ?? '0');
             
-            // Comparar profesor_id
-            // Si profesor_id es 0 (backend no retornó el campo), verificar si la materia pertenece al profesor
-            // Si profesor_id coincide con el profesor actual, incluirlo
-            final materiaDelProfesor = widget.subject.teacherId != null && 
-                                      widget.subject.teacherId == widget.profesorId.toString();
+            if (!materiaCorrecta) {
+              debugPrint('   ⏭️ Material de otra materia omitido: Materia ID $materialMateriaId != ${widget.subject.id}');
+              continue;
+            }
             
+            // Verificar si el material pertenece al profesor actual
+            // Estrategia más permisiva: si el material es de la materia correcta y:
+            // - El profesor_id coincide, O
+            // - El profesor_id es 0/null y la materia pertenece al profesor, O
+            // - La materia pertenece al profesor (asumimos que es del profesor si la materia es suya)
             final esDelProfesor = materialProfesorId == widget.profesorId || 
-                                 (materialProfesorId == 0 && materiaDelProfesor);
+                                 (materialProfesorId == 0 && materiaDelProfesor) ||
+                                 materiaDelProfesor; // Si la materia es del profesor, asumir que el material también
             
-            if (esDelProfesor && materiaCorrecta) {
-              if (material.id == null || !materialIds.contains(material.id!)) {
-                todosLosMateriales.add(material);
-                if (material.id != null) {
-                  materialIds.add(material.id!);
-                  debugPrint('   ✅ Material AGREGADO: ${material.titulo} (ID: ${material.id})');
-                } else {
-                  debugPrint('   ✅ Material AGREGADO: ${material.titulo} (sin ID)');
-                }
+            if (!esDelProfesor) {
+              debugPrint('   ⏭️ Material de otro profesor omitido: Profesor ID $materialProfesorId != ${widget.profesorId}, materia del prof: $materiaDelProfesor');
+              continue;
+            }
+            
+            // Agregar el material si no está duplicado
+            if (material.id == null || !materialIds.contains(material.id!)) {
+              todosLosMateriales.add(material);
+              if (material.id != null) {
+                materialIds.add(material.id!);
+                debugPrint('   ✅ Material AGREGADO: ${material.titulo} (ID: ${material.id}, Profesor: $materialProfesorId)');
               } else {
-                debugPrint('   ⏭️ Material duplicado omitido: ${material.id}');
+                debugPrint('   ✅ Material AGREGADO: ${material.titulo} (sin ID, Profesor: $materialProfesorId)');
               }
             } else {
-              if (!materiaCorrecta) {
-                debugPrint('   ⏭️ Material de otra materia omitido: Materia ID $materialMateriaId != ${widget.subject.id}');
-              } else {
-                debugPrint('   ⏭️ Material de otro profesor omitido: Profesor ID $materialProfesorId != ${widget.profesorId}');
-              }
+              debugPrint('   ⏭️ Material duplicado omitido: ${material.id}');
             }
           }
           
@@ -268,22 +287,44 @@ class _TeacherEstudiantesReprobadosScreenState
               
               // Filtrar solo materiales del profesor actual y de la materia correcta
               // Incluir materiales generales (estudianteId == null) Y específicos del profesor
+              final materiaDelProfesor = widget.subject.teacherId != null && 
+                                        widget.subject.teacherId == widget.profesorId.toString();
+              
               for (var material in materialesGenerales) {
                 final materialProfesorId = material.profesorId;
                 final materialMateriaId = material.materiaId;
                 final esGeneral = material.estudianteId == null;
-                final materiaCorrecta = materialMateriaId == int.parse(widget.subject.id!);
-                final esDelProfesor = materialProfesorId == widget.profesorId || 
-                                     (materialProfesorId == 0 && widget.subject.teacherId == widget.profesorId.toString());
+                final materiaCorrecta = materialMateriaId.toString() == widget.subject.id ||
+                                       materialMateriaId == int.parse(widget.subject.id ?? '0');
                 
-                // Incluir materiales generales O materiales específicos del profesor
-                if (materiaCorrecta && esDelProfesor && (esGeneral || material.estudianteId != null)) {
+                // Estrategia más permisiva para incluir materiales del profesor
+                final esDelProfesor = materialProfesorId == widget.profesorId || 
+                                     (materialProfesorId == 0 && materiaDelProfesor) ||
+                                     materiaDelProfesor;
+                
+                debugPrint('   🔍 Material: ${material.titulo}');
+                debugPrint('      - Materia correcta: $materiaCorrecta');
+                debugPrint('      - Es del profesor: $esDelProfesor (prof ID: $materialProfesorId, esperado: ${widget.profesorId})');
+                debugPrint('      - Es general: $esGeneral');
+                
+                // Incluir materiales de la materia correcta que pertenezcan al profesor
+                if (materiaCorrecta && esDelProfesor) {
                   if (material.id == null || !materialIds.contains(material.id!)) {
                     todosLosMateriales.add(material);
                     if (material.id != null) {
                       materialIds.add(material.id!);
                       debugPrint('   ✅ Material AGREGADO: ${material.titulo} (ID: ${material.id}, General: $esGeneral)');
+                    } else {
+                      debugPrint('   ✅ Material AGREGADO: ${material.titulo} (sin ID, General: $esGeneral)');
                     }
+                  } else {
+                    debugPrint('   ⏭️ Material duplicado: ${material.id}');
+                  }
+                } else {
+                  if (!materiaCorrecta) {
+                    debugPrint('   ⏭️ Material omitido: materia incorrecta');
+                  } else {
+                    debugPrint('   ⏭️ Material omitido: no es del profesor');
                   }
                 }
               }
@@ -544,8 +585,42 @@ class _TeacherEstudiantesReprobadosScreenState
                                       shrinkWrap: true,
                                       physics: const NeverScrollableScrollPhysics(),
                                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                                      itemCount: _materiales.length,
+                                      itemCount: _materiales.isEmpty ? 1 : _materiales.length,
                                       itemBuilder: (context, index) {
+                                        if (_materiales.isEmpty) {
+                                          return Padding(
+                                            padding: const EdgeInsets.all(16.0),
+                                            child: Card(
+                                              child: Padding(
+                                                padding: const EdgeInsets.all(16.0),
+                                                child: Column(
+                                                  children: [
+                                                    Icon(Icons.description, size: 48, color: Colors.grey[400]),
+                                                    const SizedBox(height: 8),
+                                                    Text(
+                                                      'No hay materiales subidos',
+                                                      style: TextStyle(
+                                                        fontSize: 16,
+                                                        color: Colors.grey[600],
+                                                        fontWeight: FontWeight.w500,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 4),
+                                                    Text(
+                                                      'Sube material usando el botón "Subir Material"',
+                                                      style: TextStyle(
+                                                        fontSize: 12,
+                                                        color: Colors.grey[500],
+                                                      ),
+                                                      textAlign: TextAlign.center,
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                        
                                         final material = _materiales[index];
                                         return Card(
                                           margin: const EdgeInsets.only(bottom: 8),

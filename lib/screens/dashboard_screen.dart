@@ -14,6 +14,8 @@ import 'grades/teacher_grades_list_screen.dart';
 import 'grades/student_grades_list_screen.dart';
 import 'reforzamiento/teacher_reforzamiento_screen.dart';
 import 'reforzamiento/student_reforzamiento_screen.dart';
+import 'reporte/reporte_notas_screen.dart';
+import '../services/enrollment_api_service.dart';
 import '../models/subject_model.dart';
 import '../models/subject_configuration_model.dart';
 import '../services/student_subject_service.dart';
@@ -35,6 +37,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final SubjectApiService _subjectApiService = SubjectApiService();
   final StudentSubjectService _studentSubjectService = StudentSubjectService();
   final TeacherApiService _teacherApiService = TeacherApiService();
+  final EnrollmentApiService _enrollmentService = EnrollmentApiService();
   int _subjectsCount = 0;
   bool _isLoadingSubjectsCount = true;
 
@@ -112,6 +115,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
       color: Colors.red,
       roles: ['estudiante'], // Solo estudiantes pueden ver sus notas
     ),
+    DashboardItem(
+      title: 'Reporte de Notas',
+      icon: Icons.description,
+      color: Colors.blue,
+      roles: ['estudiante'], // Solo estudiantes pueden ver su reporte
+    ),
   ];
 
   // Obtener menús según el rol del usuario
@@ -184,6 +193,50 @@ class _DashboardScreenState extends State<DashboardScreen> {
       setState(() {
         _isLoadingSubjectsCount = false;
       });
+    }
+  }
+
+  Future<void> _navigateToReporteNotas() async {
+    try {
+      debugPrint('📊 DEBUG DashboardScreen: Navegando a Reporte de Notas...');
+      
+      // Obtener el estudiante_id del usuario
+      final estudianteId = await _enrollmentService.getStudentIdByUserId(widget.user.id!);
+      
+      if (estudianteId == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Error al obtener información del estudiante. Verifica que estés registrado como estudiante.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+      
+      debugPrint('📊 DEBUG DashboardScreen: estudiante_id obtenido: $estudianteId');
+      
+      if (!mounted) return;
+      
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ReporteNotasScreen(
+            estudianteId: estudianteId,
+          ),
+        ),
+      );
+    } catch (e) {
+      debugPrint('❌ ERROR DashboardScreen._navigateToReporteNotas: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al abrir el reporte: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -275,6 +328,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
           return;
         }
         break;
+      case 'Reporte de Notas':
+        if (widget.user.rol == 'estudiante') {
+          _navigateToReporteNotas();
+          return;
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No tienes acceso a este módulo')),
+          );
+          return;
+        }
       case 'Calificaciones':
         // Navegar a pantalla de calificaciones según el rol
         final userRole = widget.user.rol;

@@ -4,6 +4,7 @@ import '../../services/student_subject_service.dart';
 import '../../services/user_service.dart';
 import '../../services/enrollment_api_service.dart';
 import 'student_materia_grades_screen.dart';
+import '../reporte/reporte_notas_screen.dart';
 
 class StudentGradesListScreen extends StatefulWidget {
   const StudentGradesListScreen({super.key});
@@ -70,6 +71,51 @@ class _StudentGradesListScreenState extends State<StudentGradesListScreen> {
     );
   }
 
+  Future<void> _verReporte() async {
+    try {
+      debugPrint('📊 DEBUG StudentGradesListScreen._verReporte: Iniciando...');
+      
+      final user = await UserService.getCurrentUser();
+      if (user == null || !mounted) {
+        debugPrint('❌ ERROR: No se pudo obtener la información del usuario');
+        _showError('No se pudo obtener la información del usuario');
+        return;
+      }
+
+      debugPrint('📊 DEBUG: Usuario obtenido - ID: ${user.id}, Email: ${user.email}, Nombre: ${user.nombre} ${user.apellido}');
+
+      final estudianteId =
+          await _enrollmentService.getStudentIdByUserId(user.id!);
+      
+      debugPrint('📊 DEBUG: estudiante_id obtenido: $estudianteId');
+      
+      if (estudianteId == null || !mounted) {
+        debugPrint('❌ ERROR: No se pudo obtener el estudiante_id para el usuario ${user.id}');
+        _showError('Error al obtener información del estudiante. Verifica que estés registrado como estudiante en el sistema.');
+        return;
+      }
+
+      if (!mounted) return;
+      
+      debugPrint('📊 DEBUG: Navegando a ReporteNotasScreen con estudiante_id: $estudianteId');
+      
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ReporteNotasScreen(
+            estudianteId: estudianteId,
+          ),
+        ),
+      );
+    } catch (e, stackTrace) {
+      debugPrint('❌ ERROR _verReporte: $e');
+      debugPrint('   Stack trace: $stackTrace');
+      if (mounted) {
+        _showError('Error al abrir el reporte: $e');
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -77,6 +123,13 @@ class _StudentGradesListScreenState extends State<StudentGradesListScreen> {
         title: const Text('Mis Notas'),
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.description),
+            tooltip: 'Ver Reporte de Notas',
+            onPressed: _verReporte,
+          ),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
